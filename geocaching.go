@@ -7,18 +7,28 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
 type GeocachingAPI struct {
-	c   *http.Client
-	ctx context.Context
+	client    *http.Client
+	cookieJar *cookiejar.Jar
+	ctx       context.Context
 }
 
-func NewGeocachingAPI(ctx context.Context) *GeocachingAPI {
+func NewGeocachingAPI(ctx context.Context) (*GeocachingAPI, error) {
+	var err error
 	g := &GeocachingAPI{}
 	g.ctx = ctx
-	return g
+	g.cookieJar, err = cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
+	g.client = &http.Client{
+		Jar: g.cookieJar,
+	}
+	return g, nil
 }
 
 // Broadly copying from https://github.com/btittelbach/gctools/blob/master/geocachingsitelib.py and
@@ -27,42 +37,38 @@ func NewGeocachingAPI(ctx context.Context) *GeocachingAPI {
 func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 	// Set up a cookie jar so we can store cookies between requests.
 	var err error
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return err
-	}
 
 	// First we have to initiate a request to https://www.geocaching.com/account/signin
 	// to obtain a "__RequestVerificationToken" cookie.
-	req, err := http.NewRequest("GET", "https://www.geocaching.com/account/signin", nil)
+	RVTReq, err := http.NewRequest("GET", "https://www.geocaching.com/account/signin", nil)
 	if err != nil {
 		return err
 	}
-	g.c = &http.Client{
-		Jar: jar,
-	}
-	resp, err := g.c.Do(req)
+	RVTResp, err := g.client.Do(RVTReq)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer RVTResp.Body.Close()
 
 	RVT := ""
-	for _, cookie := range resp.Cookies() {
-		if cookie.Name == "__RequestVerificationToken" {
-			RVT = cookie.Value
-		}
+
+	RVTBody, err := ioutil.ReadAll(RVTResp.Body)
+	if err != nil {
+		return err
 	}
+
+	// Construct a regex with the pattern "name=\"__RequestVerificationToken\"\\s+type=\"hidden\"\\s+value=\"([^\"]+)\""
+	// and use it to extract the value of the __RequestVerificationToken from the response body.
+	rgx := regexp.MustCompile("name=\"__RequestVerificationToken\"\\s+type=\"hidden\"\\s+value=\"([^\"]+)\"")
+	matches := rgx.FindStringSubmatch(string(RVTBody))
+	if len(matches) < 1 {
+		return fmt.Errorf("could not find __RequestVerificationToken")
+	}
+	RVT = rgx.FindStringSubmatch(string(RVTBody))[1]
+
 	if RVT == "" {
 		return fmt.Errorf("could not find __RequestVerificationToken")
 	}
-
-	// Print out all the cookies in our cookie jar for checking
-	fmt.Println("All cookies:")
-	for _, cookie := range jar.Cookies(req.URL) {
-		fmt.Println(cookie.Name, cookie.Value)
-	}
-
 	// We can make a POST request to https://www.geocaching.com/account/signin containing
 	// __RequestVerificationToken, UsernameOrEmail, Password and ReturnUrl.
 	params := url.Values{}
@@ -72,46 +78,44 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 	params.Add("Password", clientSecret)
 	body := strings.NewReader(params.Encode())
 
-	req, err = http.NewRequest("POST", "https://www.geocaching.com/account/signin", body)
+	POSTReq, err := http.NewRequest("POST", "https://www.geocaching.com/account/signin", body)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
-	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Origin", "https://www.geocaching.com")
-	req.Header.Set("Dnt", "1")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Referer", "https://www.geocaching.com/account/signin?returnUrl=%2fplay")
-	req.Header.Set("Cookie", fmt.Sprintf("__RequestVerificationToken=%s", RVT))
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
-	req.Header.Set("Sec-Fetch-Dest", "document")
-	req.Header.Set("Sec-Fetch-Mode", "navigate")
-	req.Header.Set("Sec-Fetch-Site", "same-origin")
-	req.Header.Set("Sec-Fetch-User", "?1")
+	POSTReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0")
+	POSTReq.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
+	POSTReq.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	POSTReq.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	POSTReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	POSTReq.Header.Set("Origin", "https://www.geocaching.com")
+	POSTReq.Header.Set("Dnt", "1")
+	POSTReq.Header.Set("Connection", "keep-alive")
+	POSTReq.Header.Set("Referer", "https://www.geocaching.com/account/signin?returnUrl=%2fplay")
+	// POSTReq.Header.Set("X-Verification-Token", RVT)
+	POSTReq.Header.Set("Upgrade-Insecure-Requests", "1")
+	POSTReq.Header.Set("Sec-Fetch-Dest", "document")
+	POSTReq.Header.Set("Sec-Fetch-Mode", "navigate")
+	POSTReq.Header.Set("Sec-Fetch-Site", "same-origin")
+	POSTReq.Header.Set("Sec-Fetch-User", "?1")
 
-	resp, err = http.DefaultClient.Do(req)
+	POSTResp, err := g.client.Do(POSTReq)
 	if err != nil {
+		fmt.Println("Request failed")
 		return err
 	}
-	defer resp.Body.Close()
-
-	resp, err = g.c.Do(req)
-	if err != nil {
-		return err
-	}
-	for _, cookie := range resp.Cookies() {
-		fmt.Println(cookie.Name, cookie.Value)
-	}
+	defer POSTResp.Body.Close()
 	// Print the body of the response
-	if body, err := ioutil.ReadAll(resp.Body); err == nil {
-		fmt.Println(string(body))
+	if body, err := ioutil.ReadAll(POSTResp.Body); err == nil {
+		if match, err := regexp.Match("It seems your Anti-Forgery Token is invalid", body); err == nil {
+			if match {
+				return fmt.Errorf("Anti-Forgery Token is invalid")
+			}
+		} else {
+			return err
+		}
 	} else {
-		return err
+		return fmt.Errorf("couldn't read body")
 	}
-
 	return nil
 }
 
@@ -151,6 +155,7 @@ type Geocache struct {
 }
 
 func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
+	fmt.Println("Running a search")
 
 	req, err := http.NewRequest("GET", "https://www.geocaching.com/api/proxy/web/search/v2?skip=0&take=500&asc=true&sort=distance&properties=callernote&origin=-27.46794%2C153.02809&rad=16000&oid=3356&ot=city", nil)
 	if err != nil {
@@ -165,7 +170,7 @@ func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Cookie", "BMItemsPerPage=1000;-H Sec-Fetch-Dest:")
 
-	resp, err := g.c.Do(req)
+	resp, err := g.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
