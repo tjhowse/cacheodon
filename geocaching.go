@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -33,13 +33,11 @@ func NewGeocachingAPI(ctx context.Context) (*GeocachingAPI, error) {
 
 // Broadly copying from https://github.com/btittelbach/gctools/blob/master/geocachingsitelib.py and
 // https://github.com/cgeo/cgeo/blob/master/main/src/main/java/cgeo/geocaching/connector/gc/GCWebAPI.java
-
 func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
-	// Set up a cookie jar so we can store cookies between requests.
 	var err error
 
 	// First we have to initiate a request to https://www.geocaching.com/account/signin
-	// to obtain a "__RequestVerificationToken" cookie.
+	// to obtain a "__RequestVerificationToken" value.
 	RVTReq, err := http.NewRequest("GET", "https://www.geocaching.com/account/signin", nil)
 	if err != nil {
 		return err
@@ -52,13 +50,13 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 
 	RVT := ""
 
-	RVTBody, err := ioutil.ReadAll(RVTResp.Body)
+	RVTBody, err := io.ReadAll(RVTResp.Body)
 	if err != nil {
 		return err
 	}
 
-	// Construct a regex with the pattern "name=\"__RequestVerificationToken\"\\s+type=\"hidden\"\\s+value=\"([^\"]+)\""
-	// and use it to extract the value of the __RequestVerificationToken from the response body.
+	// These bastards hide the token in a hidden field in the page. There's a cookie by the same name,
+	// but it isn't used for authentication, as far as I ca tell.
 	rgx := regexp.MustCompile("name=\"__RequestVerificationToken\"\\s+type=\"hidden\"\\s+value=\"([^\"]+)\"")
 	matches := rgx.FindStringSubmatch(string(RVTBody))
 	if len(matches) < 1 {
@@ -66,11 +64,6 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 	}
 	RVT = rgx.FindStringSubmatch(string(RVTBody))[1]
 
-	if RVT == "" {
-		return fmt.Errorf("could not find __RequestVerificationToken")
-	}
-	// We can make a POST request to https://www.geocaching.com/account/signin containing
-	// __RequestVerificationToken, UsernameOrEmail, Password and ReturnUrl.
 	params := url.Values{}
 	params.Add("__RequestVerificationToken", RVT)
 	params.Add("ReturnUrl", `/play`)
@@ -91,7 +84,6 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 	POSTReq.Header.Set("Dnt", "1")
 	POSTReq.Header.Set("Connection", "keep-alive")
 	POSTReq.Header.Set("Referer", "https://www.geocaching.com/account/signin?returnUrl=%2fplay")
-	// POSTReq.Header.Set("X-Verification-Token", RVT)
 	POSTReq.Header.Set("Upgrade-Insecure-Requests", "1")
 	POSTReq.Header.Set("Sec-Fetch-Dest", "document")
 	POSTReq.Header.Set("Sec-Fetch-Mode", "navigate")
@@ -100,18 +92,15 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 
 	POSTResp, err := g.client.Do(POSTReq)
 	if err != nil {
-		fmt.Println("Request failed")
 		return err
 	}
 	defer POSTResp.Body.Close()
-	// Print the body of the response
-	if body, err := ioutil.ReadAll(POSTResp.Body); err == nil {
-		if match, err := regexp.Match("It seems your Anti-Forgery Token is invalid", body); err == nil {
-			if match {
-				return fmt.Errorf("Anti-Forgery Token is invalid")
-			}
-		} else {
-			return err
+	if body, err := io.ReadAll(POSTResp.Body); err == nil {
+		if match, err := regexp.Match("It seems your Anti-Forgery Token is invalid", body); err == nil && match {
+			return fmt.Errorf("Anti-Forgery Token is invalid")
+		}
+		if match, err := regexp.Match(`"isLoggedIn": true,`, body); err != nil || !match {
+			return fmt.Errorf("login failed")
 		}
 	} else {
 		return fmt.Errorf("couldn't read body")
@@ -174,12 +163,13 @@ func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
 	if err != nil {
 		return nil, err
 	}
-	if body, err := ioutil.ReadAll(resp.Body); err == nil {
+	defer resp.Body.Close()
+
+	if body, err := io.ReadAll(resp.Body); err == nil {
 		fmt.Println(string(body))
 	} else {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
 	return nil, nil
 }
