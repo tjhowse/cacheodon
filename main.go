@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 )
@@ -22,7 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Found", len(searchResults), "geocaches")
+	log.Println("Found", len(searchResults), "geocaches")
 	// m := NewMastodon()
 	// if err := m.PostStatus(fmt.Sprintf("I know about %d geocaches around Brisbane! I'm being taught how to tell you about them in a useful way. Stand by!", len(searchResults))); err != nil {
 	// 	log.Fatal(err)

@@ -12,6 +12,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"log"
 )
 
 type GeocachingAPI struct {
@@ -153,12 +155,23 @@ type GeocacheSearchResponse struct {
 
 func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
 	var err error
-	fmt.Println("Running a search")
-
-	req, err := http.NewRequest("GET", "https://www.geocaching.com/api/proxy/web/search/v2?skip=0&take=500&asc=true&sort=distance&properties=callernote&origin=-27.46794%2C153.02809&rad=16000&oid=3356&ot=city", nil)
+	log.Println("Running a search")
+	req, err := http.NewRequest("GET", "https://www.geocaching.com/api/proxy/web/search/v2", nil)
 	if err != nil {
 		return nil, err
 	}
+	query := req.URL.Query()
+	query.Add("skip", "0")
+	query.Add("take", "500")
+	query.Add("asc", "true")
+	query.Add("sort", "distance")
+	query.Add("properties", "callernote")
+	query.Add("origin", "-27.46794,153.02809")
+	query.Add("rad", "16000")
+	query.Add("oid", "3356")
+	query.Add("ot", "city")
+	req.URL.RawQuery = query.Encode()
+
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Accept-Language", "en-GB,en;q=0.5")
@@ -193,7 +206,7 @@ func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
 		if err = json.Unmarshal(body, &searchResponse); err != nil {
 			return nil, err
 		}
-		fmt.Println("Found", searchResponse.Total, "geocaches")
+		log.Println("Found", searchResponse.Total, "geocaches")
 
 		// TODO Repeat the request with different skip and take values until all geocaches are found
 
