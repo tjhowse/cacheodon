@@ -18,7 +18,7 @@ func main() {
 		os.Exit(1)
 	}
 	log.Println("Authenticated")
-	if err, _ := g.Search(-27.46794, 153.02809); err != nil {
+	if _, err := g.Search(-27.46794, 153.02809); err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}

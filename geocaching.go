@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -116,7 +119,7 @@ type Geocache struct {
 	FavoritePoints    int     `json:"favoritePoints"`
 	GeocacheType      int     `json:"geocacheType"`
 	ContainerType     int     `json:"containerType"`
-	Difficulty        int     `json:"difficulty"`
+	Difficulty        float64 `json:"difficulty"`
 	Terrain           float64 `json:"terrain"`
 	CacheStatus       int     `json:"cacheStatus"`
 	PostedCoordinates struct {
@@ -143,7 +146,13 @@ type Geocache struct {
 	Bearing  string `json:"bearing"`
 }
 
+type GeocacheSearchResponse struct {
+	Results []Geocache `json:"results"`
+	Total   int        `json:"total"`
+}
+
 func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
+	var err error
 	fmt.Println("Running a search")
 
 	req, err := http.NewRequest("GET", "https://www.geocaching.com/api/proxy/web/search/v2?skip=0&take=500&asc=true&sort=distance&properties=callernote&origin=-27.46794%2C153.02809&rad=16000&oid=3356&ot=city", nil)
@@ -165,10 +174,28 @@ func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
 	}
 	defer resp.Body.Close()
 
-	if body, err := io.ReadAll(resp.Body); err == nil {
-		fmt.Println(string(body))
-	} else {
+	var body []byte
+	if body, err = io.ReadAll(resp.Body); err != nil {
 		return nil, err
+	}
+
+	// Check if the Content-Encoding is gzip, and unzip it if so
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		var r io.Reader
+		if r, err = gzip.NewReader(bytes.NewReader(body)); err != nil {
+			return nil, err
+		}
+		if body, err = io.ReadAll(r); err != nil {
+			return nil, err
+		}
+		// Unmarshal body into a GeocacheSearchResponse
+		var searchResponse GeocacheSearchResponse
+		if err = json.Unmarshal(body, &searchResponse); err != nil {
+			return nil, err
+		}
+		fmt.Println("Found", searchResponse.Total, "geocaches")
+
+		return searchResponse.Results, nil
 	}
 
 	return nil, nil
