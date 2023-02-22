@@ -11,7 +11,9 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
+	"time"
 
 	"log"
 )
@@ -146,6 +148,15 @@ type Geocache struct {
 	} `json:"attributes"`
 	Distance string `json:"distance"`
 	Bearing  string `json:"bearing"`
+
+	LastFoundTime time.Time // This is a parsed version of LastFoundDate
+}
+
+// This comparitor is used to sort a slice of Geocaches by LastFoundDate.
+// LastFoundDate is in the format "2023-01-29T10:08:20"
+func (g Geocache) LessFoundDate(other Geocache) bool {
+	// Otherwise, compare the dates
+	return g.LastFoundTime.Before(other.LastFoundTime)
 }
 
 type GeocacheSearchResponse struct {
@@ -153,20 +164,23 @@ type GeocacheSearchResponse struct {
 	Total   int        `json:"total"`
 }
 
-func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
+// This runs the query against the geocaching API and returns a slice of up to `take` geocaches,
+// and the total number of geocaches matching that query
+func (g *GeocachingAPI) searchQuery(lat, long float64, skip, take int) ([]Geocache, int, error) {
 	var err error
-	log.Println("Running a search")
 	req, err := http.NewRequest("GET", "https://www.geocaching.com/api/proxy/web/search/v2", nil)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	query := req.URL.Query()
-	query.Add("skip", "0")
-	query.Add("take", "500")
+	query.Add("skip", fmt.Sprint(skip))
+	query.Add("take", fmt.Sprint(take))
 	query.Add("asc", "true")
+	// Note: Sorting by anything other than distance is a "premium feature." This means we
+	// have to query all pages of results and sort them ourselves.
 	query.Add("sort", "distance")
 	query.Add("properties", "callernote")
-	query.Add("origin", "-27.46794,153.02809")
+	query.Add("origin", fmt.Sprintf("%f,%f", lat, long)) //"-27.46794,153.02809"
 	query.Add("rad", "16000")
 	query.Add("oid", "3356")
 	query.Add("ot", "city")
@@ -183,35 +197,97 @@ func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
 
 	resp, err := g.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer resp.Body.Close()
 
 	var body []byte
 	if body, err = io.ReadAll(resp.Body); err != nil {
+		return nil, 0, err
+	}
+
+	// Check if the Content-Encoding is gzip, abort if not.
+	if resp.Header.Get("Content-Encoding") != "gzip" {
+		return nil, 0, fmt.Errorf("unknown Content-Encoding: %s", resp.Header.Get("Content-Encoding"))
+	}
+
+	var r io.Reader
+	if r, err = gzip.NewReader(bytes.NewReader(body)); err != nil {
+		return nil, 0, err
+	}
+	if body, err = io.ReadAll(r); err != nil {
+		return nil, 0, err
+	}
+	// Unmarshal body into a GeocacheSearchResponse
+	var searchResponse GeocacheSearchResponse
+	if err = json.Unmarshal(body, &searchResponse); err != nil {
+		return nil, 0, err
+	}
+	// Iterate over the results and parse the LastFoundDate
+	for i := 0; i < len(searchResponse.Results); i++ {
+		if searchResponse.Results[i].LastFoundDate != "" {
+			searchResponse.Results[i].LastFoundTime, _ = time.Parse(time.RFC3339[:19], searchResponse.Results[i].LastFoundDate)
+		}
+	}
+
+	return searchResponse.Results, searchResponse.Total, nil
+}
+
+// This finds all geocaches
+func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
+	var err error
+	var results []Geocache
+	log.Println("Running a search")
+
+	// Run the first query to get the total number of results
+	var total int
+	if results, total, err = g.searchQuery(lat, long, 0, 500); err != nil {
 		return nil, err
 	}
 
-	// Check if the Content-Encoding is gzip, and unzip it if so
-	if resp.Header.Get("Content-Encoding") == "gzip" {
-		var r io.Reader
-		if r, err = gzip.NewReader(bytes.NewReader(body)); err != nil {
+	// Run the rest of the queries to get the rest of the results
+	for i := 500; i < total; i += 500 {
+		var nextResults []Geocache
+		if nextResults, _, err = g.searchQuery(lat, long, i, 500); err != nil {
 			return nil, err
 		}
-		if body, err = io.ReadAll(r); err != nil {
-			return nil, err
-		}
-		// Unmarshal body into a GeocacheSearchResponse
-		var searchResponse GeocacheSearchResponse
-		if err = json.Unmarshal(body, &searchResponse); err != nil {
-			return nil, err
-		}
-		log.Println("Found", searchResponse.Total, "geocaches")
-
-		// TODO Repeat the request with different skip and take values until all geocaches are found
-
-		return searchResponse.Results, nil
+		results = append(results, nextResults...)
 	}
 
-	return nil, nil
+	// Sort the results using the LessFoundDate comparitor
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].LessFoundDate(results[j])
+	})
+
+	return results, nil
+}
+
+// This returns all geocaches with a LastFoundDate later than the given date
+func (g *GeocachingAPI) SearchSince(lat, long float64, since time.Time) ([]Geocache, error) {
+	var err error
+	var results []Geocache
+
+	if results, err = g.Search(lat, long); err != nil {
+		return nil, err
+	}
+	// 2023/02/22 23:23:23 Authenticated
+	// 2023/02/22 23:23:23 Running a search
+	// 2023/02/22 23:23:26 Before the filter, there are 1702 results
+	// 2023/02/22 23:23:26 The first one is  {8952599 Clean Up South Brisbane Cemetery, Dutton Park GCA49PE false 0 13 6 1 2 0 {-27.499583 153.024767} /geocache/GCA49PE false 2023-03-05T09:30:00 {PR6XD7R McLookers} 0001-01-01T00:00:00 0 Queensland Australia [{66 Teamwork cache true} {28 Public restrooms nearby true} {26 Public transportation nearby true} {39 Thorns true}] 2.2mi S 0001-01-01 00:00:00 +0000 UTC}
+	// 2023/02/22 23:23:26 The last one is  {34483 Ku-ta views GC86B3 false 64 4 5 1.5 1 0 {-27.4851333333333 152.959033333333} /geocache/GC86B3 false 2002-08-30T00:00:00 {PRG08T tonyjago} 2023-02-22T20:45:52 0 Queensland Australia [{42 Needs maintenance true}] 4.4mi W 2023-02-22 20:45:52 +0000 UTC}
+	// 2023/02/22 23:23:26 Found 505 geocaches
+	// 2023/02/22 23:23:26 First one is {7819830 Hedge Screen - Rochedale Pictures 04 GC8X8ZG true 2 8 2 4 2 0 {0 0} /geocache/GC8X8ZG false 2020-07-25T00:00:00 {PRC80AY RoddyC} 2023-02-05T09:10:33 0 Queensland Australia [{7 Takes less than one hour true} {25 Parking nearby true} {63 Recommended for tourists true}] 8.4mi SE 2023-02-05 09:10:33 +0000 UTC}
+	// 2023/02/22 23:23:26 Last one is {34483 Ku-ta views GC86B3 false 64 4 5 1.5 1 0 {-27.4851333333333 152.959033333333} /geocache/GC86B3 false 2002-08-30T00:00:00 {PRG08T tonyjago} 2023-02-22T20:45:52 0 Queensland Australia [{42 Needs maintenance true}] 4.4mi W 2023-02-22 20:45:52 +0000 UTC}
+
+	// This weirdness is because some geocaches are actually events, and they don't have a LastFoundDate
+	// so they end up with 0001-01-01T00:00:00 as their LastFoundDate.
+
+	// The results are sorted by LastFoundDate, so we can just iterate backwards until we find
+	// the first result that is before the given date.
+	for i := len(results) - 1; i >= 0; i-- {
+		if results[i].LastFoundTime.Before(since) {
+			return results[i+1:], nil
+		}
+	}
+	return results, nil
 }
