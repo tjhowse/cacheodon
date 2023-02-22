@@ -195,6 +195,8 @@ func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
 		}
 		fmt.Println("Found", searchResponse.Total, "geocaches")
 
+		// TODO Repeat the request with different skip and take values until all geocaches are found
+
 		return searchResponse.Results, nil
 	}
 
