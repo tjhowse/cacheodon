@@ -153,6 +153,11 @@ type Geocache struct {
 	GUID          string    // We read this ourselves from the geocache's page
 }
 
+type GeocacheSearchResponse struct {
+	Results []Geocache `json:"results"`
+	Total   int        `json:"total"`
+}
+
 type GeocacheLog struct {
 	LogID               int    `json:"LogID"`
 	CacheID             int    `json:"CacheID"`
@@ -183,16 +188,23 @@ type GeocacheLog struct {
 	Images []any `json:"Images"`
 }
 
+type GeocacheLogSearchResponse struct {
+	Status   string        `json:"status"`
+	Data     []GeocacheLog `json:"data"`
+	PageInfo struct {
+		Idx        int `json:"idx"`
+		Size       int `json:"size"`
+		TotalRows  int `json:"totalRows"`
+		TotalPages int `json:"totalPages"`
+		Rows       int `json:"rows"`
+	} `json:"pageInfo"`
+}
+
 // This comparitor is used to sort a slice of Geocaches by LastFoundDate.
 // LastFoundDate is in the format "2023-01-29T10:08:20"
 func (g Geocache) LessFoundDate(other Geocache) bool {
 	// Otherwise, compare the dates
 	return g.LastFoundTime.Before(other.LastFoundTime)
-}
-
-type GeocacheSearchResponse struct {
-	Results []Geocache `json:"results"`
-	Total   int        `json:"total"`
 }
 
 // This runs the query against the geocaching API and returns a slice of up to `take` geocaches,
@@ -271,6 +283,7 @@ func (g *GeocachingAPI) searchQuery(lat, long float64, skip, take int) ([]Geocac
 // This sets the GUID field on the geocache.
 func (g *GeocachingAPI) GetGUIDForGeocache(geocache *Geocache) error {
 	url := fmt.Sprintf("https://www.geocaching.com/geocache/%s", geocache.Code)
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
@@ -294,12 +307,10 @@ func (g *GeocachingAPI) GetGUIDForGeocache(geocache *Geocache) error {
 		return err
 	}
 
-	// These bastards hide the token in a hidden field in the page. There's a cookie by the same name,
-	// but it isn't used for authentication, as far as I ca tell.
 	rgx := regexp.MustCompile("guid='([a-f0-9-]*)';")
 	matches := rgx.FindStringSubmatch(string(body))
 	if len(matches) < 1 {
-		return fmt.Errorf("could not find guid")
+		return fmt.Errorf("could not find guid. This might be a premium geocache")
 	}
 	geocache.GUID = matches[1]
 	return nil
@@ -345,10 +356,50 @@ func (g *GeocachingAPI) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 
-	// TODO parse the response body into a GeocacheLogResponse
+	rgx := regexp.MustCompile("userToken = '([A-Z0-9]*)';")
+	matches := rgx.FindStringSubmatch(string(body))
+	if len(matches) < 1 {
+		return nil, fmt.Errorf("could not find the userToken required to request the logs")
+	}
+	userToken := matches[1]
 
-	return nil, nil
+	// Now we have the userToken, we can request the logs
+	req, err = http.NewRequest("GET", "https://www.geocaching.com/seek/geocache.logbook", nil)
+	if err != nil {
+		return nil, err
+	}
+	query := req.URL.Query()
+	query.Add("tkn", userToken)
+	query.Add("idx", "1")
+	query.Add("num", "10")
+	query.Add("sp", "false")
+	query.Add("sf", "false")
+	query.Add("decrypt", "false")
+	req.URL.RawQuery = query.Encode()
+
+	logResp, err := g.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer logResp.Body.Close()
+	logBody, err := io.ReadAll(logResp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal logBody into a struct
+	var logresponse GeocacheLogSearchResponse
+	err = json.Unmarshal(logBody, &logresponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return logresponse.Data, nil
 
 }
 
@@ -378,7 +429,15 @@ func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
 		return results[i].LessFoundDate(results[j])
 	})
 
-	return results, nil
+	// Filter out the non-premium geocaches
+	var nonPremiumGeocaches []Geocache
+	for _, geocache := range results {
+		if !geocache.PremiumOnly {
+			nonPremiumGeocaches = append(nonPremiumGeocaches, geocache)
+		}
+	}
+
+	return nonPremiumGeocaches, nil
 }
 
 // This returns all geocaches with a LastFoundDate later than the given date

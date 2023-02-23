@@ -83,15 +83,17 @@ func main() {
 		// }
 
 		for _, gc := range searchResults {
-			log.Println(gc.Name, "[", gc.Code, "] was updated at", gc.LastFoundDate)
+			log.Println(gc.Name, "[", gc.Code, "] was updated at", gc.LastFoundDate, ". Its PremiumOnly is", gc.PremiumOnly)
 		}
-		temp := searchResults[0]
-		fmt.Println("Guid", temp.GUID)
-		if err := g.GetGUIDForGeocache(&temp); err != nil {
+		logs, err := g.GetLogs(&searchResults[0])
+		if err != nil {
 			log.Fatal(err)
 			os.Exit(1)
 		}
-		fmt.Println("Guid", temp.GUID)
+
+		for _, log := range logs {
+			fmt.Println(log)
+		}
 		time.Sleep(1 * time.Minute)
 	}
 
