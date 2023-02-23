@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -68,40 +67,59 @@ func main() {
 	}
 	log.Println("Authenticated")
 	var searchResults []Geocache
+	m, err := NewMastodon()
+	if err != nil {
+		log.Println(err)
+	}
 
 	for {
 		// TODO this should compare to found date of the last geocache we published,
 		// not the last time we checked.
 		if searchResults, err = g.SearchSince(-27.46794, 153.02809, config.Store.LastUpdateTime); err != nil {
 			log.Fatal(err)
-			os.Exit(1)
+			time.Sleep(1 * time.Minute)
+			continue
 		}
-		// config.Store.LastUpdateTime = time.Now()
-		// if err := config.Save(); err != nil {
-		// 	log.Fatal(err)
-		// 	os.Exit(1)
-		// }
-
-		for _, gc := range searchResults {
-			log.Println(gc.Name, "[", gc.Code, "] was updated at", gc.LastFoundDate, ". Its PremiumOnly is", gc.PremiumOnly)
-		}
-		logs, err := g.GetLogs(&searchResults[0])
-		if err != nil {
+		config.Store.LastUpdateTime = time.Now()
+		if err := config.Save(); err != nil {
 			log.Fatal(err)
 			os.Exit(1)
 		}
 
-		for _, log := range logs {
-			fmt.Println(log)
+		for _, gc := range searchResults {
+			logs, err := g.GetLogs(&gc)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			message := ""
+			if len(logs) > 0 {
+				message += "\"" + logs[0].UserName + "\""
+			} else {
+				message += "Someone"
+			}
+			message += " just found the \"" + gc.Name + "\" geocache! https://www.geocaching.com" + gc.DetailsURL
+
+			if len(logs) > 0 {
+				message += " They said: \"" + logs[0].LogText + "\""
+			}
+
+			log.Println(message)
+			if m == nil {
+				m, err = NewMastodon()
+				if err != nil {
+					log.Println(err)
+				}
+			}
+			if err := m.PostStatus(message[:500]); err != nil {
+				log.Println(err)
+				m = nil
+			} else {
+				log.Println("Posted to Mastodon: " + message)
+			}
+
 		}
 		time.Sleep(1 * time.Minute)
 	}
 
-	// log.Println("Found", len(searchResults), "geocaches")
-	// log.Println("First one is", searchResults[0])
-	// log.Println("Last one is", searchResults[len(searchResults)-1])
-	// m := NewMastodon()
-	// if err := m.PostStatus(fmt.Sprintf("I know about %d geocaches around Brisbane! I'm being taught how to tell you about them in a useful way. Stand by!", len(searchResults))); err != nil {
-	// 	log.Fatal(err)
-	// }
 }

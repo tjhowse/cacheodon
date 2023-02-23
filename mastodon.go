@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 
 	"github.com/mattn/go-mastodon"
@@ -19,7 +18,7 @@ func (m *Mastodon) PostStatus(status string) error {
 	return err
 }
 
-func NewMastodon() *Mastodon {
+func NewMastodon() (*Mastodon, error) {
 	m := &Mastodon{}
 	m.c = mastodon.NewClient(&mastodon.Config{
 		Server:       os.Getenv("MASTODON_SERVER"),
@@ -28,7 +27,7 @@ func NewMastodon() *Mastodon {
 	})
 	err := m.c.Authenticate(context.Background(), os.Getenv("MASTODON_USER_EMAIL"), os.Getenv("MASTODON_USER_PASSWORD"))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return m
+	return m, nil
 }
