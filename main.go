@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -52,6 +53,7 @@ func NewConfig(filename string) (*config, error) {
 }
 func main() {
 	var err error
+	p := bluemonday.UGCPolicy()
 
 	config, err := NewConfig("config.toml")
 	if err != nil {
@@ -101,7 +103,7 @@ func main() {
 			message += " just found the \"" + gc.Name + "\" geocache! https://www.geocaching.com" + gc.DetailsURL
 
 			if len(logs) > 0 {
-				message += " They said: \"" + logs[0].LogText + "\""
+				message += " They said: \"" + p.Sanitize(logs[0].LogText) + "\""
 			}
 
 			log.Println(message)
