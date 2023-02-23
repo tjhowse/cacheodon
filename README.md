@@ -24,7 +24,7 @@ We stitch them together into one big slice, then sort by the date they were last
 
 ### Retrieving logs
 
-We want to pull out the logs of the geocaches we're interested in so we can write messages like "<person name> found <geocache>!" to mastodon. However these pricks have made it monumentally difficult to get at the logs.
+We want to pull out the logs of the geocaches we're interested in so we can write messages like "`person name` found `geocache`!" to mastodon. However these pricks have made it monumentally difficult to get at the logs.
 
 First you have to obtain a special GUID for the geocache you're interested in. It's not included as a part of the search results JSON blob, you have to query it separately by hitting `https://www.geocaching.com/geocache/<geocache code>` and finding the GUID in the page script with a regex. We then send that GUID to `https://www.geocaching.com/seek/geocache_logs.aspx?guid=<GUID>` and scrape THAT page for a `userToken`. We then use THAT `userToken` to hit `https://www.geocaching.com/seek/geocache.logbook` to retrieve the logs for the geocache.
 
