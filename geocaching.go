@@ -69,7 +69,7 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 	if len(matches) < 1 {
 		return fmt.Errorf("could not find __RequestVerificationToken")
 	}
-	RVT = rgx.FindStringSubmatch(string(RVTBody))[1]
+	RVT = matches[1]
 
 	params := url.Values{}
 	params.Add("__RequestVerificationToken", RVT)
@@ -150,6 +150,37 @@ type Geocache struct {
 	Bearing  string `json:"bearing"`
 
 	LastFoundTime time.Time // This is a parsed version of LastFoundDate
+	GUID          string    // We read this ourselves from the geocache's page
+}
+
+type GeocacheLog struct {
+	LogID               int    `json:"LogID"`
+	CacheID             int    `json:"CacheID"`
+	LogGUID             string `json:"LogGuid"`
+	Latitude            any    `json:"Latitude"`
+	Longitude           any    `json:"Longitude"`
+	LatLonString        string `json:"LatLonString"`
+	LogTypeID           int    `json:"LogTypeID"`
+	LogType             string `json:"LogType"`
+	LogTypeImage        string `json:"LogTypeImage"`
+	LogText             string `json:"LogText"`
+	Created             string `json:"Created"`
+	Visited             string `json:"Visited"`
+	UserName            string `json:"UserName"`
+	MembershipLevel     int    `json:"MembershipLevel"`
+	AccountID           int    `json:"AccountID"`
+	AccountGUID         string `json:"AccountGuid"`
+	Email               string `json:"Email"`
+	AvatarImage         string `json:"AvatarImage"`
+	GeocacheFindCount   int    `json:"GeocacheFindCount"`
+	GeocacheHideCount   int    `json:"GeocacheHideCount"`
+	ChallengesCompleted int    `json:"ChallengesCompleted"`
+	IsEncoded           bool   `json:"IsEncoded"`
+	Creator             struct {
+		GroupTitle    string `json:"GroupTitle"`
+		GroupImageURL string `json:"GroupImageUrl"`
+	} `json:"creator"`
+	Images []any `json:"Images"`
 }
 
 // This comparitor is used to sort a slice of Geocaches by LastFoundDate.
@@ -226,11 +257,99 @@ func (g *GeocachingAPI) searchQuery(lat, long float64, skip, take int) ([]Geocac
 	// Iterate over the results and parse the LastFoundDate
 	for i := 0; i < len(searchResponse.Results); i++ {
 		if searchResponse.Results[i].LastFoundDate != "" {
-			searchResponse.Results[i].LastFoundTime, _ = time.Parse(time.RFC3339[:19], searchResponse.Results[i].LastFoundDate)
+			// Append my account's time zone to the date so it parses with timezone info
+			// TODO Work out some way of querying a user's time zone use that here instead.
+			tempTime := searchResponse.Results[i].LastFoundDate + "+10:00"
+			searchResponse.Results[i].LastFoundTime, _ = time.Parse(time.RFC3339, tempTime)
+
 		}
 	}
 
 	return searchResponse.Results, searchResponse.Total, nil
+}
+
+// This sets the GUID field on the geocache.
+func (g *GeocachingAPI) GetGUIDForGeocache(geocache *Geocache) error {
+	url := fmt.Sprintf("https://www.geocaching.com/geocache/%s", geocache.Code)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "en-GB,en;q=0.5")
+	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	req.Header.Set("Referer", "https://www.geocaching.com/play")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Cookie", "BMItemsPerPage=1000;-H Sec-Fetch-Dest:")
+
+	resp, err := g.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	// These bastards hide the token in a hidden field in the page. There's a cookie by the same name,
+	// but it isn't used for authentication, as far as I ca tell.
+	rgx := regexp.MustCompile("guid='([a-f0-9-]*)';")
+	matches := rgx.FindStringSubmatch(string(body))
+	if len(matches) < 1 {
+		return fmt.Errorf("could not find guid")
+	}
+	geocache.GUID = matches[1]
+	return nil
+}
+
+// This returns a slice of the logs associated with a given geocache ID
+// Due to bastardy, we'll need to find the GUID of the geocache,
+// from https://www.geocaching.com/geocache/<code>
+
+// var lat=-27.485133, lng=152.959033, guid='85b9e86b-aa9e-4467-be4b-9591785cd114';
+// Then hit geocache_logs.aspx and extract a token from a line like:
+// userToken = 'poopppoopppo';
+// Then we can use that
+
+func (g *GeocachingAPI) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
+	var err error
+
+	// Get the GUID for the geocache, if required
+	if geocache.GUID == "" {
+		err = g.GetGUIDForGeocache(geocache)
+		if err != nil {
+			return nil, err
+		}
+	}
+	url := fmt.Sprintf("https://www.geocaching.com/seek/geocache_logs.aspx?guid=%s", geocache.GUID)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "en-GB,en;q=0.5")
+	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	req.Header.Set("Referer", "https://www.geocaching.com/play")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Cookie", "BMItemsPerPage=1000;-H Sec-Fetch-Dest:")
+
+	resp, err := g.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// TODO parse the response body into a GeocacheLogResponse
+
+	return nil, nil
+
 }
 
 // This finds all geocaches
@@ -254,7 +373,7 @@ func (g *GeocachingAPI) Search(lat, long float64) ([]Geocache, error) {
 		results = append(results, nextResults...)
 	}
 
-	// Sort the results using the LessFoundDate comparitor
+	// Sort the results using the LessFoundDate comparator
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].LessFoundDate(results[j])
 	})
@@ -270,17 +389,6 @@ func (g *GeocachingAPI) SearchSince(lat, long float64, since time.Time) ([]Geoca
 	if results, err = g.Search(lat, long); err != nil {
 		return nil, err
 	}
-	// 2023/02/22 23:23:23 Authenticated
-	// 2023/02/22 23:23:23 Running a search
-	// 2023/02/22 23:23:26 Before the filter, there are 1702 results
-	// 2023/02/22 23:23:26 The first one is  {8952599 Clean Up South Brisbane Cemetery, Dutton Park GCA49PE false 0 13 6 1 2 0 {-27.499583 153.024767} /geocache/GCA49PE false 2023-03-05T09:30:00 {PR6XD7R McLookers} 0001-01-01T00:00:00 0 Queensland Australia [{66 Teamwork cache true} {28 Public restrooms nearby true} {26 Public transportation nearby true} {39 Thorns true}] 2.2mi S 0001-01-01 00:00:00 +0000 UTC}
-	// 2023/02/22 23:23:26 The last one is  {34483 Ku-ta views GC86B3 false 64 4 5 1.5 1 0 {-27.4851333333333 152.959033333333} /geocache/GC86B3 false 2002-08-30T00:00:00 {PRG08T tonyjago} 2023-02-22T20:45:52 0 Queensland Australia [{42 Needs maintenance true}] 4.4mi W 2023-02-22 20:45:52 +0000 UTC}
-	// 2023/02/22 23:23:26 Found 505 geocaches
-	// 2023/02/22 23:23:26 First one is {7819830 Hedge Screen - Rochedale Pictures 04 GC8X8ZG true 2 8 2 4 2 0 {0 0} /geocache/GC8X8ZG false 2020-07-25T00:00:00 {PRC80AY RoddyC} 2023-02-05T09:10:33 0 Queensland Australia [{7 Takes less than one hour true} {25 Parking nearby true} {63 Recommended for tourists true}] 8.4mi SE 2023-02-05 09:10:33 +0000 UTC}
-	// 2023/02/22 23:23:26 Last one is {34483 Ku-ta views GC86B3 false 64 4 5 1.5 1 0 {-27.4851333333333 152.959033333333} /geocache/GC86B3 false 2002-08-30T00:00:00 {PRG08T tonyjago} 2023-02-22T20:45:52 0 Queensland Australia [{42 Needs maintenance true}] 4.4mi W 2023-02-22 20:45:52 +0000 UTC}
-
-	// This weirdness is because some geocaches are actually events, and they don't have a LastFoundDate
-	// so they end up with 0001-01-01T00:00:00 as their LastFoundDate.
 
 	// The results are sorted by LastFoundDate, so we can just iterate backwards until we find
 	// the first result that is before the given date.
