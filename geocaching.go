@@ -112,6 +112,7 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 		if match, err := regexp.Match(`"isLoggedIn": true,`, body); err != nil || !match {
 			return fmt.Errorf("login failed")
 		}
+
 	} else {
 		return fmt.Errorf("couldn't read body")
 	}

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestAuth(t *testing.T) {
+func TestAuthSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/account/signin" {
 			t.Errorf("Expected to request '/account/signin', got: %s", r.URL.Path)
@@ -47,6 +47,79 @@ func TestAuth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	gc.Auth("client_id", "client_secret")
+	if err := gc.Auth("client_id", "client_secret"); err != nil {
+		t.Fatal(err)
+	}
+}
 
+func TestAuthFail1(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/account/signin" {
+			t.Errorf("Expected to request '/account/signin', got: %s", r.URL.Path)
+		}
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`Bloopa doopa this is the body
+			of the message
+			name="__RequestVerificationToken" type="hidden" value="plooybloots" />
+			that was the token you're after.`))
+		} else if r.Method == http.MethodPost {
+			// Check the body of the POST contains the required fields.
+			if err := r.ParseForm(); err != nil {
+				t.Fatal(err)
+			}
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`It seems your Anti-Forgery Token is invalid`))
+
+		}
+	}))
+	defer server.Close()
+
+	gc, err := NewGeocachingAPI(server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := gc.Auth("client_id", "client_secret"); err == nil {
+		t.Fatal("Should've got an error, but didn't")
+	} else {
+		if want, got := "Anti-Forgery Token is invalid", err.Error(); want != got {
+			t.Errorf("Expected error to be '%s', got: %s", want, got)
+		}
+	}
+}
+
+func TestAuthFail2(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/account/signin" {
+			t.Errorf("Expected to request '/account/signin', got: %s", r.URL.Path)
+		}
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`Bloopa doopa this is the body
+			of the message
+			name="__RequestVerificationToken" type="hidden" value="plooybloots" />
+			that was the token you're after.`))
+		} else if r.Method == http.MethodPost {
+			// Check the body of the POST contains the required fields.
+			if err := r.ParseForm(); err != nil {
+				t.Fatal(err)
+			}
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`"isLoggedIn": false,`))
+
+		}
+	}))
+	defer server.Close()
+
+	gc, err := NewGeocachingAPI(server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := gc.Auth("client_id", "client_secret"); err == nil {
+		t.Fatal("Should've got an error, but didn't")
+	} else {
+		if want, got := "login failed", err.Error(); want != got {
+			t.Errorf("Expected error to be '%s', got: %s", want, got)
+		}
+	}
 }
