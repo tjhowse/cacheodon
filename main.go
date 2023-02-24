@@ -11,7 +11,14 @@ import (
 )
 
 type configStore struct {
-	LastUpdateTime time.Time
+	State struct {
+		LastPostedFoundTime time.Time
+	}
+	SearchTerms struct {
+		Latitude     float32
+		Longitude    float32
+		RadiusMeters int
+	}
 }
 
 type config struct {
@@ -43,6 +50,7 @@ func NewConfig(filename string) (*config, error) {
 	}
 	if err := c.Load(); err != nil {
 		if os.IsNotExist(err) {
+			c.Store.State.LastPostedFoundTime = time.Now()
 			if err := c.Save(); err != nil {
 				return nil, err
 			}
@@ -73,9 +81,12 @@ func main() {
 	}
 
 	for {
-		// TODO This should read the coordinates from the config store.
-		if searchResults, err = g.SearchSince(-27.46794, 153.02809, config.Store.LastUpdateTime); err != nil {
-			log.Fatal(err)
+		if searchResults, err = g.SearchSince(
+			float64(config.Store.SearchTerms.Latitude),
+			float64(config.Store.SearchTerms.Longitude),
+			config.Store.State.LastPostedFoundTime); err != nil {
+
+			log.Println(err)
 			time.Sleep(1 * time.Minute)
 			continue
 		}
@@ -112,7 +123,7 @@ func main() {
 				m = nil
 			} else {
 				log.Println("Posted to Mastodon: " + message)
-				config.Store.LastUpdateTime = gc.LastFoundTime
+				config.Store.State.LastPostedFoundTime = gc.LastFoundTime
 				if err := config.Save(); err != nil {
 					log.Fatal(err)
 					os.Exit(1)
