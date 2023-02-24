@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 	"time"
@@ -66,8 +65,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx := context.Background()
-	g, _ := NewGeocachingAPI(ctx)
+	g, _ := NewGeocachingAPI("https://www.geocaching.com")
 	if err := g.Auth(os.Getenv("GEOCACHING_CLIENT_ID"), os.Getenv("GEOCACHING_CLIENT_SECRET")); err != nil {
 		log.Fatal(err)
 		os.Exit(1)
