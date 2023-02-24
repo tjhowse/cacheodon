@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -32,12 +31,12 @@ func (c *config) Save() error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(c.Filename, b, 0644)
+	return os.WriteFile(c.Filename, b, 0644)
 }
 
 // Load the current config from a toml file.
 func (c *config) Load() error {
-	b, err := ioutil.ReadFile(c.Filename)
+	b, err := os.ReadFile(c.Filename)
 	if err != nil {
 		return err
 	}
