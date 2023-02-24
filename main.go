@@ -102,7 +102,7 @@ func main() {
 			message += " just found the \"" + gc.Name + "\" geocache! https://www.geocaching.com" + gc.DetailsURL
 
 			if len(logs) > 0 {
-				message += " They said: \"" + logs[0].LogText + "\""
+				message += " They wrote: \"" + logs[0].LogText + "\""
 			}
 
 			log.Println(message)
