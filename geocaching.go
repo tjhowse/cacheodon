@@ -466,7 +466,7 @@ func (g *GeocachingAPI) SearchSince(lat, long float64, since time.Time) ([]Geoca
 	// The results are sorted by LastFoundDate, so we can just iterate backwards until we find
 	// the first result that is before the given date.
 	for i := len(results) - 1; i >= 0; i-- {
-		if results[i].LastFoundTime.Before(since) {
+		if results[i].LastFoundTime.Before(since) || results[i].LastFoundTime.Equal(since) {
 			return results[i+1:], nil
 		}
 	}
