@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -16,12 +17,15 @@ import (
 	"time"
 
 	"log"
+
+	"github.com/microcosm-cc/bluemonday"
 )
 
 type GeocachingAPI struct {
-	client    *http.Client
-	cookieJar *cookiejar.Jar
-	ctx       context.Context
+	client           *http.Client
+	cookieJar        *cookiejar.Jar
+	ctx              context.Context
+	blueMondayPolicy *bluemonday.Policy
 }
 
 func NewGeocachingAPI(ctx context.Context) (*GeocachingAPI, error) {
@@ -35,6 +39,7 @@ func NewGeocachingAPI(ctx context.Context) (*GeocachingAPI, error) {
 	g.client = &http.Client{
 		Jar: g.cookieJar,
 	}
+	g.blueMondayPolicy = bluemonday.StrictPolicy()
 	return g, nil
 }
 
@@ -316,6 +321,10 @@ func (g *GeocachingAPI) GetGUIDForGeocache(geocache *Geocache) error {
 	return nil
 }
 
+func (g *GeocachingAPI) SanitiseLogText(text string) string {
+	return html.UnescapeString(strings.TrimSpace(g.blueMondayPolicy.Sanitize(text)))
+}
+
 // This returns a slice of the logs associated with a given geocache ID
 // Due to bastardy, we'll need to find the GUID of the geocache,
 // from https://www.geocaching.com/geocache/<code>
@@ -397,6 +406,11 @@ func (g *GeocachingAPI) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 	err = json.Unmarshal(logBody, &logresponse)
 	if err != nil {
 		return nil, err
+	}
+
+	// Go through and sanitise all the log text.
+	for i := 0; i < len(logresponse.Data); i++ {
+		logresponse.Data[i].LogText = g.SanitiseLogText(logresponse.Data[i].LogText)
 	}
 
 	return logresponse.Data, nil

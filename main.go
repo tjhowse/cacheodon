@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/microcosm-cc/bluemonday"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -53,7 +52,6 @@ func NewConfig(filename string) (*config, error) {
 }
 func main() {
 	var err error
-	p := bluemonday.UGCPolicy()
 
 	config, err := NewConfig("config.toml")
 	if err != nil {
@@ -77,6 +75,7 @@ func main() {
 	for {
 		// TODO this should compare to found date of the last geocache we published,
 		// not the last time we checked.
+		// TODO This should read the coordinates from the config store.
 		if searchResults, err = g.SearchSince(-27.46794, 153.02809, config.Store.LastUpdateTime); err != nil {
 			log.Fatal(err)
 			time.Sleep(1 * time.Minute)
@@ -103,7 +102,7 @@ func main() {
 			message += " just found the \"" + gc.Name + "\" geocache! https://www.geocaching.com" + gc.DetailsURL
 
 			if len(logs) > 0 {
-				message += " They said: \"" + p.Sanitize(logs[0].LogText) + "\""
+				message += " They said: \"" + logs[0].LogText + "\""
 			}
 
 			log.Println(message)
@@ -113,11 +112,20 @@ func main() {
 					log.Println(err)
 				}
 			}
-			if err := m.PostStatus(message[:500]); err != nil {
+			if len(message) >= 500 {
+				message = message[:500]
+			}
+			if err := m.PostStatus(message); err != nil {
 				log.Println(err)
 				m = nil
 			} else {
 				log.Println("Posted to Mastodon: " + message)
+				// TODO put this back in once we solve the edge case where the times line up exactly.
+				// config.Store.LastUpdateTime = gc.LastFoundTime
+				// if err := config.Save(); err != nil {
+				// 	log.Fatal(err)
+				// 	os.Exit(1)
+				// }
 			}
 
 		}
