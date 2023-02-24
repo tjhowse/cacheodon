@@ -73,20 +73,12 @@ func main() {
 	}
 
 	for {
-		// TODO this should compare to found date of the last geocache we published,
-		// not the last time we checked.
 		// TODO This should read the coordinates from the config store.
 		if searchResults, err = g.SearchSince(-27.46794, 153.02809, config.Store.LastUpdateTime); err != nil {
 			log.Fatal(err)
 			time.Sleep(1 * time.Minute)
 			continue
 		}
-		// config.Store.LastUpdateTime = time.Now()
-		// if err := config.Save(); err != nil {
-		// 	log.Fatal(err)
-		// 	os.Exit(1)
-		// }
-
 		for _, gc := range searchResults {
 			logs, err := g.GetLogs(&gc)
 			if err != nil {
@@ -120,7 +112,6 @@ func main() {
 				m = nil
 			} else {
 				log.Println("Posted to Mastodon: " + message)
-				// TODO put this back in once we solve the edge case where the times line up exactly.
 				config.Store.LastUpdateTime = gc.LastFoundTime
 				if err := config.Save(); err != nil {
 					log.Fatal(err)

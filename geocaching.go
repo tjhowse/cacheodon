@@ -255,17 +255,16 @@ func (g *GeocachingAPI) searchQuery(lat, long float64, skip, take int) ([]Geocac
 	}
 
 	// Check if the Content-Encoding is gzip, abort if not.
-	if resp.Header.Get("Content-Encoding") != "gzip" {
-		return nil, 0, fmt.Errorf("unknown Content-Encoding: %s", resp.Header.Get("Content-Encoding"))
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		var r io.Reader
+		if r, err = gzip.NewReader(bytes.NewReader(body)); err != nil {
+			return nil, 0, err
+		}
+		if body, err = io.ReadAll(r); err != nil {
+			return nil, 0, err
+		}
 	}
 
-	var r io.Reader
-	if r, err = gzip.NewReader(bytes.NewReader(body)); err != nil {
-		return nil, 0, err
-	}
-	if body, err = io.ReadAll(r); err != nil {
-		return nil, 0, err
-	}
 	// Unmarshal body into a GeocacheSearchResponse
 	var searchResponse GeocacheSearchResponse
 	if err = json.Unmarshal(body, &searchResponse); err != nil {
