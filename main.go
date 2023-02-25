@@ -9,6 +9,9 @@ import (
 )
 
 type configStore struct {
+	// TODO move this state into an sqlite database.
+	// TODO add a table that tracks the number of times a person finds a cache in a day
+	// so we can add text to the end of the message like "That's their 3rd find today!"
 	State struct {
 		LastPostedFoundTime time.Time
 	}
@@ -97,7 +100,7 @@ func main() {
 			if len(logs) > 0 {
 				message += "\"" + logs[0].UserName + "\""
 			} else {
-				message += "Someone"
+				message += "In Brisbane, someone"
 			}
 			message += " just found the \"" + gc.Name + "\" geocache! https://www.geocaching.com" + gc.DetailsURL
 
