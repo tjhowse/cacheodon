@@ -26,6 +26,7 @@ func TestAddFind(t *testing.T) {
 	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
 		t.Fatal(err)
 	} else {
+		defer db.Close()
 		// Add a find from right now
 		db.AddFind("testname", timeNow, "GC123", "testlog")
 		// Check one find in the last 24 hours.
@@ -43,6 +44,5 @@ func TestAddFind(t *testing.T) {
 		if want, got := 2, db.FindsSinceTime("testname", timeMidnight); want != got {
 			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
 		}
-		db.Close()
 	}
 }

@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 	"time"
+
+	"github.com/dustin/go-humanize"
 )
 
 // This truncates a string to the given maximum length and returns
@@ -24,6 +26,13 @@ func main() {
 		log.Fatal(err)
 		os.Exit(1)
 	}
+
+	findDB, err := NewFinderDB("finds.db")
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+	defer findDB.Close()
 
 	g, _ := NewGeocachingAPI("https://www.geocaching.com")
 	if err := g.Auth(os.Getenv("GEOCACHING_CLIENT_ID"), os.Getenv("GEOCACHING_CLIENT_SECRET")); err != nil {
@@ -49,21 +58,21 @@ func main() {
 		}
 		for _, gc := range searchResults {
 			logs, err := g.GetLogs(&gc)
-			if err != nil {
+			if err != nil || len(logs) == 0 {
 				log.Println(err)
 				continue
 			}
-			message := ""
-			if len(logs) > 0 {
-				message += "In Brisbane, \"" + logs[0].UserName + "\""
-			} else {
-				message += "In Brisbane, someone"
-			}
-			message += " just found the \"" + gc.Name + "\" geocache! https://www.geocaching.com" + gc.DetailsURL
 
-			if len(logs) > 0 {
-				message += " They wrote: \"" + logs[0].LogText + "\""
+			findDB.AddFind(logs[0].UserName, gc.LastFoundTime, gc.Code, logs[0].LogText)
+
+			message := ""
+			message += "In Brisbane, \"" + logs[0].UserName + "\""
+			message += " just found the \"" + gc.Name + "\" geocache! https://www.geocaching.com" + gc.DetailsURL
+			if findCount := findDB.FindsSinceMidnight(logs[0].UserName); findCount > 1 {
+				message += " That's their " + humanize.Ordinal(findCount) + " find today!"
 			}
+
+			message += " They wrote: \"" + logs[0].LogText + "\""
 
 			log.Println(message)
 			if m == nil {
