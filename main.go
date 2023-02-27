@@ -27,7 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	findDB, err := NewFinderDB("finds.db")
+	findDB, err := NewFinderDB("finds.sqlite3")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)

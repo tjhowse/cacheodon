@@ -46,3 +46,26 @@ func TestAddFind(t *testing.T) {
 		}
 	}
 }
+
+func TestPersistence(t *testing.T) {
+	tempdir := t.TempDir()
+	// Set the "current time" to midday so we don't run into issues with the midnight rollover.
+	timeNow := time.Date(2021, 1, 1, 12, 0, 0, 0, time.UTC)
+	timeMidnight := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	// Create an empty DB
+	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
+		t.Fatal(err)
+	} else {
+		db.AddFind("testname", timeNow, "GC123", "testlog")
+		defer db.Close()
+	}
+	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
+		t.Fatal(err)
+	} else {
+		if want, got := 1, db.FindsSinceTime("testname", timeMidnight); want != got {
+			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
+		}
+		defer db.Close()
+	}
+}
