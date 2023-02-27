@@ -8,8 +8,6 @@ import (
 )
 
 type configStore struct {
-	// TODO migrate this to use koanf:
-	// https://github.com/knadh/koanf
 
 	// TODO add a table that tracks the number of times a person finds a cache in a day
 	// so we can add text to the end of the message like "That's their 3rd find today!"

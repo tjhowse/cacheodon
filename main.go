@@ -6,6 +6,16 @@ import (
 	"time"
 )
 
+// This truncates a string to the given maximum length and returns
+// the result. If truncation was necessary, it adds an elipsis to
+// the end of the string.
+func truncate(s string, max int) string {
+	if len(s) >= max {
+		return s[:max-1] + "…"
+	}
+	return s
+}
+
 func main() {
 	var err error
 
@@ -45,7 +55,7 @@ func main() {
 			}
 			message := ""
 			if len(logs) > 0 {
-				message += "\"" + logs[0].UserName + "\""
+				message += "In Brisbane, \"" + logs[0].UserName + "\""
 			} else {
 				message += "In Brisbane, someone"
 			}
@@ -62,9 +72,7 @@ func main() {
 					log.Println(err)
 				}
 			}
-			if len(message) >= 500 {
-				message = message[:500]
-			}
+			message = truncate(message, 500)
 			if err := m.PostStatus(message); err != nil {
 				log.Println(err)
 				m = nil
