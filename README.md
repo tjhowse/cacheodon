@@ -32,7 +32,7 @@ For Brisbane, Australia.
 
 ## Further reading
 
-Due to the incredible bastards who designed the API at geocaching.com, we have to jump through a lot of hoops.
+Due to the incredible bastards who designed the API at geocaching.com, I had to jump through a lot of hoops to get this working. Here's a brief overview of what I had to do.
 
 ### Background
 
