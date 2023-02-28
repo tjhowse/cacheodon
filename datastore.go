@@ -15,9 +15,6 @@ type searchTerms struct {
 }
 
 type configStore struct {
-
-	// TODO add a table that tracks the number of times a person finds a cache in a day
-	// so we can add text to the end of the message like "That's their 3rd find today!"
 	State struct {
 		LastPostedFoundTime time.Time
 	}
