@@ -48,8 +48,9 @@ func main() {
 
 	for {
 		if searchResults, err = g.SearchSince(
-			float64(config.Store.SearchTerms.Latitude),
-			float64(config.Store.SearchTerms.Longitude),
+			config.Store.SearchTerms.Latitude,
+			config.Store.SearchTerms.Longitude,
+			config.Store.SearchTerms.RadiusMeters,
 			config.Store.State.LastPostedFoundTime); err != nil {
 
 			log.Println(err)

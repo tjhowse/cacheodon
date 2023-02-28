@@ -33,6 +33,8 @@ func TestAddFind(t *testing.T) {
 		if want, got := 1, db.FindsSinceTime("testname", timeMidnight); want != got {
 			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
 		}
+		// Add an irrelevant find.
+		db.AddFind("testname2", timeNow, "GC321", "testlog")
 		// Add another find ten minutes ago
 		db.AddFind("testname", timeNow.Add(-10*time.Minute), "GC456", "testlog2")
 		// Check we now have two finds since midnight
