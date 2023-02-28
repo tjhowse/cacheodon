@@ -7,6 +7,12 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
+type searchTerms struct {
+	Latitude     float32
+	Longitude    float32
+	RadiusMeters int
+}
+
 type configStore struct {
 
 	// TODO add a table that tracks the number of times a person finds a cache in a day
@@ -14,11 +20,7 @@ type configStore struct {
 	State struct {
 		LastPostedFoundTime time.Time
 	}
-	SearchTerms struct {
-		Latitude     float32
-		Longitude    float32
-		RadiusMeters int
-	}
+	SearchTerms searchTerms
 }
 
 type config struct {

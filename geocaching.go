@@ -213,7 +213,7 @@ func (g Geocache) LessFoundDate(other Geocache) bool {
 
 // This runs the query against the geocaching API and returns a slice of up to `take` geocaches,
 // and the total number of geocaches matching that query
-func (g *GeocachingAPI) searchQuery(lat, long float32, radius int, skip, take int) ([]Geocache, int, error) {
+func (g *GeocachingAPI) searchQuery(st searchTerms, skip, take int) ([]Geocache, int, error) {
 	var err error
 	req, err := http.NewRequest("GET", g.baseURL+"/api/proxy/web/search/v2", nil)
 	if err != nil {
@@ -227,8 +227,8 @@ func (g *GeocachingAPI) searchQuery(lat, long float32, radius int, skip, take in
 	// have to query all pages of results and sort them ourselves.
 	query.Add("sort", "distance")
 	query.Add("properties", "callernote")
-	query.Add("origin", fmt.Sprintf("%f,%f", lat, long)) //"-27.46794,153.02809"
-	query.Add("rad", "16000")
+	query.Add("origin", fmt.Sprintf("%f,%f", st.Latitude, st.Longitude))
+	query.Add("rad", fmt.Sprint(st.RadiusMeters))
 	query.Add("oid", "3356")
 	query.Add("ot", "city")
 	req.URL.RawQuery = query.Encode()
@@ -416,21 +416,21 @@ func (g *GeocachingAPI) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 }
 
 // This finds all geocaches
-func (g *GeocachingAPI) Search(lat, long float32, radius int) ([]Geocache, error) {
+func (g *GeocachingAPI) Search(st searchTerms) ([]Geocache, error) {
 	var err error
 	var results []Geocache
 	log.Println("Running a search")
 
 	// Run the first query to get the total number of results
 	var total int
-	if results, total, err = g.searchQuery(lat, long, radius, 0, 500); err != nil {
+	if results, total, err = g.searchQuery(st, 0, 500); err != nil {
 		return nil, err
 	}
 
 	// Run the rest of the queries to get the rest of the results
 	for i := 500; i < total; i += 500 {
 		var nextResults []Geocache
-		if nextResults, _, err = g.searchQuery(lat, long, radius, i, 500); err != nil {
+		if nextResults, _, err = g.searchQuery(st, i, 500); err != nil {
 			return nil, err
 		}
 		results = append(results, nextResults...)
@@ -453,11 +453,11 @@ func (g *GeocachingAPI) Search(lat, long float32, radius int) ([]Geocache, error
 }
 
 // This returns all geocaches with a LastFoundDate later than the given date
-func (g *GeocachingAPI) SearchSince(lat, long float32, radius int, since time.Time) ([]Geocache, error) {
+func (g *GeocachingAPI) SearchSince(st searchTerms, since time.Time) ([]Geocache, error) {
 	var err error
 	var results []Geocache
 
-	if results, err = g.Search(lat, long, radius); err != nil {
+	if results, err = g.Search(st); err != nil {
 		return nil, err
 	}
 
