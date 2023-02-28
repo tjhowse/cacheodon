@@ -2,6 +2,34 @@
 
 This is an agent that relays geocaching-related events from the web to a mastodon server.
 
+## Deployment
+
+    git clone https://github.com/tjhowse/cacheodon
+    cd cacheodon
+    <maybe go get? Not sure, test this.>
+    go build
+    export GEOCACHING_CLIENT_ID=<geocaching.com username>
+    export GEOCACHING_CLIENT_SECRET=<geocaching.com password>
+    export MASTODON_SERVER=https://<server>
+    export MASTODON_CLIENT_ID=<mastodon client id>
+    export MASTODON_CLIENT_SECRET=<mastodon client secret>
+    export MASTODON_USER_EMAIL=<mastodon user email address>
+    export MASTODON_USER_PASSWORD=<mastodon user password>
+    ./cacheodon
+    <ctrl-c>
+
+Edit config.toml to insert the coordinates and search radius you wish to monitor, E.G.
+
+    [State]
+    LastPostedFoundTime = 2023-02-28T15:47:32+10:00
+
+    [SearchTerms]
+    Latitude = -27.46794
+    Longitude = 153.02809
+    RadiusMeters = 16000
+
+For Brisbane, Australia.
+
 ## Bastardry
 
 Due to the incredible bastards who designed the API at geocaching.com, we have to jump through a lot of hoops.

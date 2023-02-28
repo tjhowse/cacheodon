@@ -71,10 +71,8 @@ func main() {
 			if findCount := findDB.FindsSinceMidnight(logs[0].UserName); findCount > 1 {
 				message += " That's their " + humanize.Ordinal(findCount) + " find today!"
 			}
-
 			message += " They wrote: \"" + logs[0].LogText + "\""
 
-			log.Println(message)
 			if m == nil {
 				m, err = NewMastodon()
 				if err != nil {
