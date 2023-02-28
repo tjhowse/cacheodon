@@ -30,7 +30,7 @@ Edit config.toml to insert the coordinates and search radius you wish to monitor
 
 For Brisbane, Australia.
 
-## Bastardry
+## Further reading
 
 Due to the incredible bastards who designed the API at geocaching.com, we have to jump through a lot of hoops.
 
