@@ -65,7 +65,7 @@ func main() {
 			findDB.AddFind(logs[0].UserName, gc.LastFoundTime, gc.Code, logs[0].LogText)
 
 			message := ""
-			message += "In Brisbane, \"" + logs[0].UserName + "\""
+			message += "In " + config.Store.SearchTerms.AreaName + ", \"" + logs[0].UserName + "\""
 			message += " just found the \"" + gc.Name + "\" geocache! https://www.geocaching.com" + gc.DetailsURL
 			if findCount := findDB.FindsSinceMidnight(logs[0].UserName); findCount > 1 {
 				message += " That's their " + humanize.Ordinal(findCount) + " find today!"

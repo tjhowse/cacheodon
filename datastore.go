@@ -11,6 +11,7 @@ type searchTerms struct {
 	Latitude     float32
 	Longitude    float32
 	RadiusMeters int
+	AreaName     string
 }
 
 type configStore struct {
