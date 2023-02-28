@@ -27,14 +27,21 @@ type GeocachingAPI struct {
 	blueMondayPolicy *bluemonday.Policy
 }
 
-func NewGeocachingAPI(url string) (*GeocachingAPI, error) {
+func NewGeocachingAPI(endpointURL string) (*GeocachingAPI, error) {
 	var err error
-	g := &GeocachingAPI{baseURL: url}
+	g := &GeocachingAPI{baseURL: endpointURL}
 	g.cookieJar, err = cookiejar.New(nil)
 	if err != nil {
 		return nil, err
 	}
+	// proxyUrl, err := url.Parse("socks5://192.168.1.50:9050")
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// myClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
 	g.client = &http.Client{
+		// Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)},
 		Jar: g.cookieJar,
 	}
 	g.blueMondayPolicy = bluemonday.StrictPolicy()
@@ -110,6 +117,8 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 			return fmt.Errorf("Anti-Forgery Token is invalid")
 		}
 		if match, err := regexp.Match(`"isLoggedIn": true,`, body); err != nil || !match {
+			// Print the body
+			// log.Println(string(body))
 			return fmt.Errorf("login failed")
 		}
 
