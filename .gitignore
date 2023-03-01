@@ -1,5 +1,5 @@
 notes
-load_env.sh
+*.sh
 launch.json
 coverage.html
 coverage.out
