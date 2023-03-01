@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"math/rand"
 	"os"
 	"time"
@@ -23,8 +24,13 @@ func truncate(s string, max int) string {
 func main() {
 	var err error
 
-	// Set the log level to debug
-	log.SetLevel(log.DebugLevel)
+	verbose := flag.Bool("v", false, "Verbose logging")
+
+	flag.Parse()
+	if *verbose {
+		// Set the log level to debug
+		log.SetLevel(log.DebugLevel)
+	}
 	// Set the log format to include a leading timestamp in ISO8601 format
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
