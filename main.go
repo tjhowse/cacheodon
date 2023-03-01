@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"os"
 	"time"
 
@@ -90,9 +91,11 @@ func main() {
 					os.Exit(1)
 				}
 			}
-			time.Sleep(5 * time.Second)
+			// Wait a random number of seconds between 3 and 8
+			time.Sleep(time.Duration(rand.Intn(5)+3) * time.Second)
 		}
-		time.Sleep(5 * time.Minute)
+		// Wait a random number of minutes between 3 and 8
+		time.Sleep(time.Duration(rand.Intn(5*60)+3*60) * time.Second)
 	}
 
 }
