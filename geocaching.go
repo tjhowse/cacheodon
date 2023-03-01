@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/microcosm-cc/bluemonday"
 )
@@ -63,6 +63,7 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 	if err != nil {
 		return err
 	}
+	log.Debug("Request: __RequestVerificationToken")
 	RVTResp, err := g.client.Do(RVTReq)
 	if err != nil {
 		return err
@@ -111,6 +112,7 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 	POSTReq.Header.Set("Sec-Fetch-Site", "same-origin")
 	POSTReq.Header.Set("Sec-Fetch-User", "?1")
 
+	log.Debug("Request: Authentication")
 	POSTResp, err := g.client.Do(POSTReq)
 	if err != nil {
 		return err
@@ -255,6 +257,7 @@ func (g *GeocachingAPI) searchQuery(st searchTerms, skip, take int) ([]Geocache,
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Cookie", "BMItemsPerPage=1000;-H Sec-Fetch-Dest:")
 
+	log.Debug("Request: Search")
 	resp, err := g.client.Do(req)
 	if err != nil {
 		return nil, 0, err
@@ -313,6 +316,7 @@ func (g *GeocachingAPI) GetGUIDForGeocache(geocache *Geocache) error {
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Cookie", "BMItemsPerPage=1000;-H Sec-Fetch-Dest:")
 
+	log.Debug("Request: GetGUIDForGeocache")
 	resp, err := g.client.Do(req)
 	if err != nil {
 		return err
@@ -371,6 +375,7 @@ func (g *GeocachingAPI) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Cookie", "BMItemsPerPage=1000;-H Sec-Fetch-Dest:")
 
+	log.Debug("Request: GetLogs userToken")
 	resp, err := g.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -402,6 +407,7 @@ func (g *GeocachingAPI) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 	query.Add("decrypt", "false")
 	req.URL.RawQuery = query.Encode()
 
+	log.Debug("Request: GetLogs Logs")
 	logResp, err := g.client.Do(req)
 	if err != nil {
 		return nil, err

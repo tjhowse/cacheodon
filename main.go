@@ -1,10 +1,11 @@
 package main
 
 import (
-	"log"
 	"math/rand"
 	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/dustin/go-humanize"
 )
@@ -21,6 +22,13 @@ func truncate(s string, max int) string {
 
 func main() {
 	var err error
+
+	// Set the log level to debug
+	log.SetLevel(log.DebugLevel)
+	// Set the log format to include a leading timestamp in ISO8601 format
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+	})
 
 	config, err := NewDatastore("config.toml")
 	if err != nil {
