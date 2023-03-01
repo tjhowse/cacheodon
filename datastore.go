@@ -17,7 +17,7 @@ type searchTerms struct {
 type URLConfig struct {
 	// The URL of the Geocaching API.
 	GeocachingAPIURL string
-	SOCKS5ProxyURL   string
+	HTTPProxyURL     string
 }
 
 type configStore struct {

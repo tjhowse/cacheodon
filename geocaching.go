@@ -37,9 +37,9 @@ func NewGeocachingAPI(c URLConfig) (*GeocachingAPI, error) {
 		return nil, err
 	}
 	var proxyUrl *url.URL
-	if c.SOCKS5ProxyURL != "" {
-		log.Println("Connecting with proxy:", c.SOCKS5ProxyURL)
-		proxyUrl, err = url.Parse(c.SOCKS5ProxyURL)
+	if c.HTTPProxyURL != "" {
+		log.Println("Connecting with proxy:", c.HTTPProxyURL)
+		proxyUrl, err = url.Parse(c.HTTPProxyURL)
 		if err != nil {
 			return nil, err
 		}

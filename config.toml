@@ -2,7 +2,7 @@
 LastPostedFoundTime = 2023-03-01T09:29:51+10:00
 
 [Configuration]
-SOCKS5ProxyURL = ''
+HTTPProxyURL = ''
 GeocachingAPIURL = 'https://www.geocaching.com'
 
 [SearchTerms]
