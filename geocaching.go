@@ -450,8 +450,16 @@ func (g *GeocachingAPI) Search(st searchTerms) ([]Geocache, error) {
 		return nil, err
 	}
 
+	// This is to confirm that we don't spin endlessly spamming search
+	// requests if something goes awry.
+	var sanityCheck int
+
 	// Run the rest of the queries to get the rest of the results
 	for i := 500; i < total; i += 500 {
+		sanityCheck++
+		if sanityCheck > 10 {
+			return nil, fmt.Errorf("sanity check failed")
+		}
 		// Wait a random number of seconds between 2 and 5
 		time.Sleep(time.Duration(rand.Intn(3)+2) * time.Second)
 		var nextResults []Geocache
