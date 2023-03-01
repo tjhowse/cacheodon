@@ -17,13 +17,14 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/time/rate"
 
 	"github.com/microcosm-cc/bluemonday"
 )
 
 type GeocachingAPI struct {
 	baseURL          string
-	client           *http.Client
+	client           *RLHTTPClient
 	cookieJar        *cookiejar.Jar
 	blueMondayPolicy *bluemonday.Policy
 }
@@ -44,9 +45,12 @@ func NewGeocachingAPI(c URLConfig) (*GeocachingAPI, error) {
 		}
 	}
 
-	g.client = &http.Client{
-		Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)},
-		Jar:       g.cookieJar,
+	g.client = &RLHTTPClient{
+		client: &http.Client{
+			Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)},
+			Jar:       g.cookieJar,
+		},
+		Ratelimiter: rate.NewLimiter(rate.Every(1*time.Second), 1),
 	}
 	g.blueMondayPolicy = bluemonday.StrictPolicy()
 	return g, nil
