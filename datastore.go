@@ -14,17 +14,17 @@ type searchTerms struct {
 	AreaName     string
 }
 
-type Config struct {
+type URLConfig struct {
 	// The URL of the Geocaching API.
 	GeocachingAPIURL string
-	SOCKS5Proxy      string
+	SOCKS5ProxyURL   string
 }
 
 type configStore struct {
 	State struct {
 		LastPostedFoundTime time.Time
 	}
-	Configuration Config
+	Configuration URLConfig
 	SearchTerms   searchTerms
 }
 

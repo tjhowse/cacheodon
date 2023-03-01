@@ -27,7 +27,7 @@ type GeocachingAPI struct {
 	blueMondayPolicy *bluemonday.Policy
 }
 
-func NewGeocachingAPI(c Config) (*GeocachingAPI, error) {
+func NewGeocachingAPI(c URLConfig) (*GeocachingAPI, error) {
 	var err error
 	g := &GeocachingAPI{baseURL: c.GeocachingAPIURL}
 	g.cookieJar, err = cookiejar.New(nil)
@@ -35,8 +35,9 @@ func NewGeocachingAPI(c Config) (*GeocachingAPI, error) {
 		return nil, err
 	}
 	var proxyUrl *url.URL
-	if c.SOCKS5Proxy != "" {
-		proxyUrl, err = url.Parse(c.SOCKS5Proxy)
+	if c.SOCKS5ProxyURL != "" {
+		log.Println("Connecting with proxy:", c.SOCKS5ProxyURL)
+		proxyUrl, err = url.Parse(c.SOCKS5ProxyURL)
 		if err != nil {
 			return nil, err
 		}

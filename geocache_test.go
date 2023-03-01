@@ -43,7 +43,7 @@ func TestAuthSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := Config{
+	c := URLConfig{
 		GeocachingAPIURL: server.URL,
 	}
 
@@ -79,7 +79,7 @@ func TestAuthFail1(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := Config{
+	c := URLConfig{
 		GeocachingAPIURL: server.URL,
 	}
 
@@ -119,7 +119,7 @@ func TestAuthFail2(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := Config{
+	c := URLConfig{
 		GeocachingAPIURL: server.URL,
 	}
 

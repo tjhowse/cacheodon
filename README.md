@@ -19,18 +19,9 @@ Install the Go compiler and tools from [here](https://golang.org/doc/install).
     ./cacheodon
     <ctrl-c>
 
-Edit config.toml to insert the coordinates and search radius you wish to monitor, E.G.
+Edit config.toml to insert the coordinates and search radius you wish to monitor, then:
 
-    [State]
-    LastPostedFoundTime = 2023-02-28T15:47:32+10:00
-
-    [SearchTerms]
-    Latitude = -27.46794
-    Longitude = 153.02809
-    RadiusMeters = 16000
-    AreaName = 'Brisbane'
-
-For Brisbane, Australia.
+    ./cacheodon
 
 ## Further reading
 
