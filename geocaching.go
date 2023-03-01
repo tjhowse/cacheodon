@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -441,6 +442,8 @@ func (g *GeocachingAPI) Search(st searchTerms) ([]Geocache, error) {
 
 	// Run the rest of the queries to get the rest of the results
 	for i := 500; i < total; i += 500 {
+		// Wait a random number of seconds between 2 and 5
+		time.Sleep(time.Duration(rand.Intn(3)+2) * time.Second)
 		var nextResults []Geocache
 		if nextResults, _, err = g.searchQuery(st, i, 500); err != nil {
 			return nil, err
