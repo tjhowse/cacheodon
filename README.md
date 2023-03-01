@@ -4,6 +4,8 @@ This is an agent that relays geocaching-related events from the web to a mastodo
 
 ## Deployment
 
+Install the Go compiler and tools from [here](https://golang.org/doc/install).
+
     git clone https://github.com/tjhowse/cacheodon
     cd cacheodon
     go build
@@ -26,6 +28,7 @@ Edit config.toml to insert the coordinates and search radius you wish to monitor
     Latitude = -27.46794
     Longitude = 153.02809
     RadiusMeters = 16000
+    AreaName = 'Brisbane'
 
 For Brisbane, Australia.
 
