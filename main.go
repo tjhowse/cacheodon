@@ -34,7 +34,7 @@ func main() {
 	}
 	defer findDB.Close()
 
-	g, _ := NewGeocachingAPI("https://www.geocaching.com")
+	g, _ := NewGeocachingAPI(config.Store.Configuration)
 	if err := g.Auth(os.Getenv("GEOCACHING_CLIENT_ID"), os.Getenv("GEOCACHING_CLIENT_SECRET")); err != nil {
 		log.Fatal(err)
 		os.Exit(1)

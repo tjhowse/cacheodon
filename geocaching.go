@@ -27,22 +27,24 @@ type GeocachingAPI struct {
 	blueMondayPolicy *bluemonday.Policy
 }
 
-func NewGeocachingAPI(endpointURL string) (*GeocachingAPI, error) {
+func NewGeocachingAPI(c Config) (*GeocachingAPI, error) {
 	var err error
-	g := &GeocachingAPI{baseURL: endpointURL}
+	g := &GeocachingAPI{baseURL: c.GeocachingAPIURL}
 	g.cookieJar, err = cookiejar.New(nil)
 	if err != nil {
 		return nil, err
 	}
-	// proxyUrl, err := url.Parse("socks5://192.168.1.50:9050")
-	// if err != nil {
-	// 	return nil, err
-	// }
+	var proxyUrl *url.URL
+	if c.SOCKS5Proxy != "" {
+		proxyUrl, err = url.Parse(c.SOCKS5Proxy)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	// myClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
 	g.client = &http.Client{
-		// Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)},
-		Jar: g.cookieJar,
+		Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)},
+		Jar:       g.cookieJar,
 	}
 	g.blueMondayPolicy = bluemonday.StrictPolicy()
 	return g, nil

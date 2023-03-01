@@ -1,5 +1,9 @@
 [State]
-LastPostedFoundTime = 2023-02-28T20:28:24+10:00
+LastPostedFoundTime = 2023-03-01T09:29:51+10:00
+
+[Configuration]
+SOCKS5ProxyURL = ''
+GeocachingAPIURL = 'https://www.geocaching.com'
 
 [SearchTerms]
 Latitude = -27.46794

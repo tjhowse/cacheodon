@@ -43,7 +43,11 @@ func TestAuthSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	gc, err := NewGeocachingAPI(server.URL)
+	c := Config{
+		GeocachingAPIURL: server.URL,
+	}
+
+	gc, err := NewGeocachingAPI(c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +79,11 @@ func TestAuthFail1(t *testing.T) {
 	}))
 	defer server.Close()
 
-	gc, err := NewGeocachingAPI(server.URL)
+	c := Config{
+		GeocachingAPIURL: server.URL,
+	}
+
+	gc, err := NewGeocachingAPI(c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +119,11 @@ func TestAuthFail2(t *testing.T) {
 	}))
 	defer server.Close()
 
-	gc, err := NewGeocachingAPI(server.URL)
+	c := Config{
+		GeocachingAPIURL: server.URL,
+	}
+
+	gc, err := NewGeocachingAPI(c)
 	if err != nil {
 		t.Fatal(err)
 	}
