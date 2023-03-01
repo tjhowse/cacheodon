@@ -6,7 +6,6 @@ This is an agent that relays geocaching-related events from the web to a mastodo
 
     git clone https://github.com/tjhowse/cacheodon
     cd cacheodon
-    <maybe go get? Not sure, test this.>
     go build
     export GEOCACHING_CLIENT_ID=<geocaching.com username>
     export GEOCACHING_CLIENT_SECRET=<geocaching.com password>
