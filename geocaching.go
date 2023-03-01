@@ -292,15 +292,20 @@ func (g *GeocachingAPI) searchQuery(st searchTerms, skip, take int) ([]Geocache,
 	// Iterate over the results and parse the LastFoundDate
 	for i := 0; i < len(searchResponse.Results); i++ {
 		if searchResponse.Results[i].LastFoundDate != "" {
-			// Append my account's time zone to the date so it parses with timezone info
-			// TODO Work out some way of querying a user's time zone use that here instead.
-			tempTime := searchResponse.Results[i].LastFoundDate + "+10:00"
-			searchResponse.Results[i].LastFoundTime, _ = time.Parse(time.RFC3339, tempTime)
-
+			searchResponse.Results[i].LastFoundTime, _ = parseTime(searchResponse.Results[i].LastFoundDate)
 		}
 	}
 
 	return searchResponse.Results, searchResponse.Total, nil
+}
+
+// This returns a time.Time parsed from a LastFoundDate or PlacedDate as delivered by the
+// gc.com api.
+func parseTime(date string) (time.Time, error) {
+	// Append my account's time zone to the date so it parses with timezone info
+	// TODO Work out some way of querying a user's time zone use that here instead.
+	tempTime := date + "+10:00"
+	return time.Parse(time.RFC3339, tempTime)
 }
 
 // This sets the GUID field on the geocache.

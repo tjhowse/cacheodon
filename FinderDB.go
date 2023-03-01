@@ -16,6 +16,12 @@ type CacheFind struct {
 	LogString string
 }
 
+type Cache struct {
+	gorm.Model
+	Code       string
+	PlacedTime time.Time
+}
+
 // This stores the finder database.
 type FinderDB struct {
 	db *gorm.DB
@@ -31,6 +37,7 @@ func (f *FinderDB) Init(filename string) error {
 
 	// Migrate the schema
 	f.db.AutoMigrate(&CacheFind{})
+	f.db.AutoMigrate(&Cache{})
 
 	return nil
 }
@@ -42,6 +49,18 @@ func (f *FinderDB) Close() error {
 		return err
 	}
 	return sqlDB.Close()
+}
+
+// TODO If a new cache shows up in the database publish a message about it.
+
+// This adds a cache to the database
+func (f *FinderDB) AddCache(gc Geocache) error {
+	if t, err := parseTime(gc.PlacedDate); err == nil {
+		f.db.Create(&Cache{Code: gc.Code, PlacedTime: t})
+		return nil
+	} else {
+		return err
+	}
 }
 
 // This adds a find to the database
