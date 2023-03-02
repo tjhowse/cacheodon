@@ -499,12 +499,17 @@ func (g *GeocachingAPI) SearchSince(st searchTerms, since time.Time) ([]Geocache
 		return nil, err
 	}
 
+	return FilterFoundSince(results, since), nil
+}
+
+// This filters a []Geocache to only include those that have a LastFoundDate later than the given date
+func FilterFoundSince(geocaches []Geocache, since time.Time) []Geocache {
 	// The results are sorted by LastFoundDate, so we can just iterate backwards until we find
 	// the first result that is before the given date.
-	for i := len(results) - 1; i >= 0; i-- {
-		if results[i].LastFoundTime.Before(since) || results[i].LastFoundTime.Equal(since) {
-			return results[i+1:], nil
+	for i := len(geocaches) - 1; i >= 0; i-- {
+		if geocaches[i].LastFoundTime.Before(since) || geocaches[i].LastFoundTime.Equal(since) {
+			return geocaches[i+1:]
 		}
 	}
-	return results, nil
+	return []Geocache{}
 }

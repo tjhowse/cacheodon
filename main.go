@@ -42,12 +42,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	findDB, err := NewFinderDB("cacheodon.sqlite3")
+	cacheDB, err := NewFinderDB("cacheodon.sqlite3")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
-	defer findDB.Close()
+	defer cacheDB.Close()
 
 	g, _ := NewGeocachingAPI(config.Store.Configuration)
 	if err := g.Auth(os.Getenv("GEOCACHING_CLIENT_ID"), os.Getenv("GEOCACHING_CLIENT_SECRET")); err != nil {
@@ -77,12 +77,12 @@ func main() {
 				continue
 			}
 
-			findDB.AddFind(logs[0].UserName, gc.LastFoundTime, gc.Code, logs[0].LogText)
+			cacheDB.AddFind(logs[0].UserName, gc.LastFoundTime, gc.Code, logs[0].LogText)
 
 			message := ""
 			message += "In " + config.Store.SearchTerms.AreaName + ", \"" + logs[0].UserName + "\""
 			message += " just found the \"" + gc.Name + "\" geocache! https://www.geocaching.com" + gc.DetailsURL
-			if findCount := findDB.FindsSinceMidnight(logs[0].UserName); findCount > 1 {
+			if findCount := cacheDB.FindsSinceMidnight(logs[0].UserName); findCount > 1 {
 				message += " That's their " + humanize.Ordinal(findCount) + " find today!"
 			}
 			message += " They wrote: \"" + logs[0].LogText + "\""
