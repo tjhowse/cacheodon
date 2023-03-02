@@ -22,6 +22,11 @@ type Cache struct {
 	PlacedTime time.Time
 }
 
+type State struct {
+	gorm.Model
+	LastPostedFoundTime time.Time
+}
+
 // This stores the finder database.
 type FinderDB struct {
 	db *gorm.DB
@@ -38,6 +43,7 @@ func (f *FinderDB) Init(filename string) error {
 	// Migrate the schema
 	f.db.AutoMigrate(&CacheFind{})
 	f.db.AutoMigrate(&Cache{})
+	f.db.AutoMigrate(&State{})
 
 	return nil
 }
@@ -49,6 +55,29 @@ func (f *FinderDB) Close() error {
 		return err
 	}
 	return sqlDB.Close()
+}
+
+// This returns the last posted found time. If no time was saved, the default time is returned.
+func (f *FinderDB) GetLastPostedFoundTime(def time.Time) time.Time {
+	var state State
+	if tx := f.db.First(&state); tx.RowsAffected == 0 {
+		// No state record exists, create one.
+		f.db.Create(&State{LastPostedFoundTime: def})
+		return def
+	}
+	return state.LastPostedFoundTime
+}
+
+// This sets the last posted found time.
+func (f *FinderDB) SetLastPostedFoundTime(t time.Time) {
+	var state State
+	if tx := f.db.First(&state); tx.RowsAffected == 0 {
+		// No state record exists, create one.
+		f.db.Create(&State{LastPostedFoundTime: t})
+		return
+	}
+	state.LastPostedFoundTime = t
+	f.db.Save(&state)
 }
 
 // TODO If a new cache shows up in the database publish a message about it.
