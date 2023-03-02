@@ -53,13 +53,20 @@ func (f *FinderDB) Close() error {
 
 // TODO If a new cache shows up in the database publish a message about it.
 
-// This adds a cache to the database
-func (f *FinderDB) AddCache(gc Geocache) error {
+// This adds a cache to the database. If the cache already exists, it is not added.
+// Returns true if the cache was added, false if it already existed.
+func (f *FinderDB) AddCache(gc Geocache) (bool, error) {
 	if t, err := parseTime(gc.PlacedDate); err == nil {
+		// Check if a cache with this code already exists.
+		var count int64
+		f.db.Model(&Cache{}).Where("code = ?", gc.Code).Count(&count)
+		if count > 0 {
+			return false, nil
+		}
 		f.db.Create(&Cache{Code: gc.Code, PlacedTime: t})
-		return nil
+		return true, nil
 	} else {
-		return err
+		return false, err
 	}
 }
 

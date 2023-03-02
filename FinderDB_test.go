@@ -55,19 +55,74 @@ func TestPersistence(t *testing.T) {
 	timeNow := time.Date(2021, 1, 1, 12, 0, 0, 0, time.UTC)
 	timeMidnight := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
 
+	gc := Geocache{
+		Code:       "GC123",
+		PlacedDate: "2023-03-02T16:44:59",
+	}
+
 	// Create an empty DB
 	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
 		t.Fatal(err)
 	} else {
-		db.AddFind("testname", timeNow, "GC123", "testlog")
 		defer db.Close()
+		db.AddFind("testname", timeNow, "GC123", "testlog")
+		db.AddCache(gc)
 	}
 	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
 		t.Fatal(err)
 	} else {
+		defer db.Close()
 		if want, got := 1, db.FindsSinceTime("testname", timeMidnight); want != got {
 			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
 		}
+		if new, err := db.AddCache(gc); err != nil {
+			t.Fatal(err)
+		} else {
+			if new {
+				t.Fatal("Cache should not be new")
+			}
+		}
+	}
+}
+
+func TestAddCache(t *testing.T) {
+	tempdir := t.TempDir()
+	// Create an empty DB
+	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
+		t.Fatal(err)
+	} else {
 		defer db.Close()
+		// Add a cache
+		gc := Geocache{
+			Code:       "GC123",
+			PlacedDate: "2023-03-02T16:44:59",
+		}
+		if new, err := db.AddCache(gc); err != nil {
+			t.Fatal(err)
+		} else {
+			if !new {
+				t.Fatal("Cache should be new")
+			}
+		}
+		// Check the cache is there
+
+		if new, err := db.AddCache(gc); err != nil {
+			t.Fatal(err)
+		} else {
+			if new {
+				t.Fatal("Cache should not be new")
+			}
+		}
+		gc = Geocache{
+			Code: "GC321",
+			// Deliberately bad timestamp
+			PlacedDate: "202asdasdfasdf02T16:44:59",
+		}
+		if new, err := db.AddCache(gc); err == nil {
+			t.Fatal("Should have failed to add cache due to bad timestamp")
+		} else if new {
+			t.Fatal("Cache should've failed to be added.")
+		}
+
 	}
 }
