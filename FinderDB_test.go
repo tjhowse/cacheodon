@@ -118,10 +118,8 @@ func TestAddCache(t *testing.T) {
 			// Deliberately bad timestamp
 			PlacedDate: "202asdasdfasdf02T16:44:59",
 		}
-		if new, err := db.AddCache(gc); err == nil {
+		if new, err := db.AddCache(gc); err == nil || new {
 			t.Fatal("Should have failed to add cache due to bad timestamp")
-		} else if new {
-			t.Fatal("Cache should've failed to be added.")
 		}
 
 	}
