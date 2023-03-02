@@ -62,6 +62,8 @@ func main() {
 	}
 
 	for {
+		// This should use cacheDB.GetLastPostedFoundTime(time.Now()) instead of
+		// config.Store.State.LastPostedFoundTime but it needs testing.
 		if searchResults, err = g.SearchSince(
 			config.Store.SearchTerms,
 			config.Store.State.LastPostedFoundTime); err != nil {
@@ -78,6 +80,8 @@ func main() {
 			}
 
 			cacheDB.AddLog(logs[0].UserName, gc.LastFoundTime, gc.Code, logs[0].LogText)
+
+			log.Debug("This log type is " + logs[0].LogType)
 
 			message := ""
 			message += "In " + config.Store.SearchTerms.AreaName + ", \"" + logs[0].UserName + "\""
@@ -99,6 +103,7 @@ func main() {
 				m = nil
 			} else {
 				log.Println("Posted to Mastodon: " + message)
+				cacheDB.SetLastPostedFoundTime(gc.LastFoundTime)
 				config.Store.State.LastPostedFoundTime = gc.LastFoundTime
 				if err := config.Save(); err != nil {
 					log.Fatal(err)

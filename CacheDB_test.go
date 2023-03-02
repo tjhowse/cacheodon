@@ -129,6 +129,7 @@ func TestLastPostedFoundTime(t *testing.T) {
 	tempdir := t.TempDir()
 	// Set the "current time" to midday so we don't run into issues with the midnight rollover.
 	timeNow := time.Date(2021, 1, 1, 12, 0, 0, 0, time.UTC)
+	timeLater := time.Date(2022, 1, 1, 12, 0, 0, 0, time.UTC)
 
 	// Create an empty DB
 	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
@@ -136,7 +137,7 @@ func TestLastPostedFoundTime(t *testing.T) {
 	} else {
 		defer db.Close()
 		db.SetLastPostedFoundTime(timeNow)
-		if want, got := timeNow, db.GetLastPostedFoundTime(timeNow); want != got {
+		if want, got := timeNow, db.GetLastPostedFoundTime(timeLater); want != got {
 			t.Fatalf("LastPostedFoundTime returned wrong value: want %s, got %s", want, got)
 		}
 	}
@@ -145,7 +146,33 @@ func TestLastPostedFoundTime(t *testing.T) {
 		t.Fatal(err)
 	} else {
 		defer db.Close()
-		if want, got := timeNow, db.GetLastPostedFoundTime(timeNow); want != got {
+		if want, got := timeNow, db.GetLastPostedFoundTime(timeLater); want != got {
+			t.Fatalf("LastPostedFoundTime didn't remember the right value: want %s, got %s", want, got)
+		}
+	}
+}
+
+func TestLastPostedFoundTimeDefault(t *testing.T) {
+	tempdir := t.TempDir()
+	// Set the "current time" to midday so we don't run into issues with the midnight rollover.
+	timeNow := time.Date(2021, 1, 1, 12, 0, 0, 0, time.UTC)
+	timeLater := time.Date(2022, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	// Create an empty DB
+	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
+		t.Fatal(err)
+	} else {
+		defer db.Close()
+		if want, got := timeLater, db.GetLastPostedFoundTime(timeLater); want != got {
+			t.Fatalf("LastPostedFoundTime returned wrong value: want %s, got %s", want, got)
+		}
+	}
+	// Check the value is persisted
+	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
+		t.Fatal(err)
+	} else {
+		defer db.Close()
+		if want, got := timeLater, db.GetLastPostedFoundTime(timeNow); want != got {
 			t.Fatalf("LastPostedFoundTime didn't remember the right value: want %s, got %s", want, got)
 		}
 	}
