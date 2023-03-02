@@ -100,7 +100,7 @@ func (f *FinderDB) AddCache(gc Geocache) (bool, error) {
 }
 
 // This adds a find to the database
-func (f *FinderDB) AddFind(name string, findTime time.Time, cacheCode string, logString string) {
+func (f *FinderDB) AddLog(name string, findTime time.Time, cacheCode string, logString string) {
 	f.db.Create(&CacheFind{Name: name, FindTime: findTime, CacheCode: cacheCode, LogString: logString})
 }
 

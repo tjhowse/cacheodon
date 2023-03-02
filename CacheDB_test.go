@@ -28,21 +28,21 @@ func TestAddFind(t *testing.T) {
 	} else {
 		defer db.Close()
 		// Add a find from right now
-		db.AddFind("testname", timeNow, "GC123", "testlog")
+		db.AddLog("testname", timeNow, "GC123", "testlog")
 		// Check one find in the last 24 hours.
 		if want, got := 1, db.FindsSinceTime("testname", timeMidnight); want != got {
 			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
 		}
 		// Add an irrelevant find.
-		db.AddFind("testname2", timeNow, "GC321", "testlog")
+		db.AddLog("testname2", timeNow, "GC321", "testlog")
 		// Add another find ten minutes ago
-		db.AddFind("testname", timeNow.Add(-10*time.Minute), "GC456", "testlog2")
+		db.AddLog("testname", timeNow.Add(-10*time.Minute), "GC456", "testlog2")
 		// Check we now have two finds since midnight
 		if want, got := 2, db.FindsSinceTime("testname", timeMidnight); want != got {
 			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
 		}
 		// Add a find 24 hours ago and ensure it doesn't count towards today's finds
-		db.AddFind("testname", timeNow.Add(-24*time.Hour), "GC789", "testlog3")
+		db.AddLog("testname", timeNow.Add(-24*time.Hour), "GC789", "testlog3")
 		if want, got := 2, db.FindsSinceTime("testname", timeMidnight); want != got {
 			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
 		}
@@ -65,7 +65,7 @@ func TestPersistence(t *testing.T) {
 		t.Fatal(err)
 	} else {
 		defer db.Close()
-		db.AddFind("testname", timeNow, "GC123", "testlog")
+		db.AddLog("testname", timeNow, "GC123", "testlog")
 		db.AddCache(gc)
 	}
 	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {

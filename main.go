@@ -77,7 +77,7 @@ func main() {
 				continue
 			}
 
-			cacheDB.AddFind(logs[0].UserName, gc.LastFoundTime, gc.Code, logs[0].LogText)
+			cacheDB.AddLog(logs[0].UserName, gc.LastFoundTime, gc.Code, logs[0].LogText)
 
 			message := ""
 			message += "In " + config.Store.SearchTerms.AreaName + ", \"" + logs[0].UserName + "\""
