@@ -16,7 +16,20 @@ func TestInit(t *testing.T) {
 	}
 }
 
-func TestAddFind(t *testing.T) {
+// Returns a GeocacheLog and Geocache filled with the provided test data
+func getTestData(finderName string, findTime time.Time, cacheCode string, logText string) (*GeocacheLog, *Geocache) {
+	gc := Geocache{
+		Code:          cacheCode,
+		LastFoundTime: findTime,
+	}
+	l := GeocacheLog{
+		UserName: finderName,
+		LogText:  logText,
+	}
+	return &l, &gc
+}
+
+func TestAddLog(t *testing.T) {
 	tempdir := t.TempDir()
 	// Set the "current time" to midday so we don't run into issues with the midnight rollover.
 	timeNow := time.Date(2021, 1, 1, 12, 0, 0, 0, time.UTC)
@@ -28,21 +41,22 @@ func TestAddFind(t *testing.T) {
 	} else {
 		defer db.Close()
 		// Add a find from right now
-		db.AddLog("testname", timeNow, "GC123", "testlog")
+		db.AddLog(getTestData("testname", timeNow, "GC123", "testlog"))
 		// Check one find in the last 24 hours.
 		if want, got := 1, db.FindsSinceTime("testname", timeMidnight); want != got {
 			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
 		}
 		// Add an irrelevant find.
-		db.AddLog("testname2", timeNow, "GC321", "testlog")
+		db.AddLog(getTestData("testname2", timeNow, "GC321", "testlog"))
+
 		// Add another find ten minutes ago
-		db.AddLog("testname", timeNow.Add(-10*time.Minute), "GC456", "testlog2")
+		db.AddLog(getTestData("testname", timeNow.Add(-10*time.Minute), "GC456", "testlog2"))
 		// Check we now have two finds since midnight
 		if want, got := 2, db.FindsSinceTime("testname", timeMidnight); want != got {
 			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
 		}
 		// Add a find 24 hours ago and ensure it doesn't count towards today's finds
-		db.AddLog("testname", timeNow.Add(-24*time.Hour), "GC789", "testlog3")
+		db.AddLog(getTestData("testname", timeNow.Add(-24*time.Hour), "GC789", "testlog3"))
 		if want, got := 2, db.FindsSinceTime("testname", timeMidnight); want != got {
 			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
 		}
@@ -65,8 +79,8 @@ func TestPersistence(t *testing.T) {
 		t.Fatal(err)
 	} else {
 		defer db.Close()
-		db.AddLog("testname", timeNow, "GC123", "testlog")
-		db.AddCache(gc)
+		db.AddLog(getTestData("testname", timeNow, "GC123", "testlog"))
+		db.AddCache(&gc)
 	}
 	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
 		t.Fatal(err)
@@ -75,7 +89,7 @@ func TestPersistence(t *testing.T) {
 		if want, got := 1, db.FindsSinceTime("testname", timeMidnight); want != got {
 			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
 		}
-		if new, err := db.AddCache(gc); err != nil {
+		if new, err := db.AddCache(&gc); err != nil {
 			t.Fatal(err)
 		} else {
 			if new {
@@ -97,7 +111,7 @@ func TestAddCache(t *testing.T) {
 			Code:       "GC123",
 			PlacedDate: "2023-03-02T16:44:59",
 		}
-		if new, err := db.AddCache(gc); err != nil {
+		if new, err := db.AddCache(&gc); err != nil {
 			t.Fatal(err)
 		} else {
 			if !new {
@@ -106,7 +120,7 @@ func TestAddCache(t *testing.T) {
 		}
 		// Check the cache is there
 
-		if new, err := db.AddCache(gc); err != nil {
+		if new, err := db.AddCache(&gc); err != nil {
 			t.Fatal(err)
 		} else {
 			if new {
@@ -118,7 +132,7 @@ func TestAddCache(t *testing.T) {
 			// Deliberately bad timestamp
 			PlacedDate: "202asdasdfasdf02T16:44:59",
 		}
-		if new, err := db.AddCache(gc); err == nil || new {
+		if new, err := db.AddCache(&gc); err == nil || new {
 			t.Fatal("Should have failed to add cache due to bad timestamp")
 		}
 

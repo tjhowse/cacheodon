@@ -12,6 +12,7 @@ type CacheFind struct {
 	gorm.Model
 	Name      string
 	FindTime  time.Time
+	FindType  string
 	CacheCode string
 	LogString string
 }
@@ -60,6 +61,8 @@ func (f *FinderDB) Close() error {
 // This returns the last posted found time. If no time was saved, the default time is returned.
 func (f *FinderDB) GetLastPostedFoundTime(def time.Time) time.Time {
 	var state State
+	// TODO This doesn't work, RowsAffected is always 0 when
+	// doing a read.
 	if tx := f.db.First(&state); tx.RowsAffected == 0 {
 		// No state record exists, create one.
 		f.db.Create(&State{LastPostedFoundTime: def})
@@ -84,7 +87,7 @@ func (f *FinderDB) SetLastPostedFoundTime(t time.Time) {
 
 // This adds a cache to the database. If the cache already exists, it is not added.
 // Returns true if the cache was added, false if it already existed.
-func (f *FinderDB) AddCache(gc Geocache) (bool, error) {
+func (f *FinderDB) AddCache(gc *Geocache) (bool, error) {
 	if t, err := parseTime(gc.PlacedDate); err == nil {
 		// Check if a cache with this code already exists.
 		var count int64
@@ -100,8 +103,14 @@ func (f *FinderDB) AddCache(gc Geocache) (bool, error) {
 }
 
 // This adds a find to the database
-func (f *FinderDB) AddLog(name string, findTime time.Time, cacheCode string, logString string) {
-	f.db.Create(&CacheFind{Name: name, FindTime: findTime, CacheCode: cacheCode, LogString: logString})
+func (f *FinderDB) AddLog(cf *GeocacheLog, gc *Geocache) {
+	f.db.Create(&CacheFind{
+		Name:      cf.UserName,
+		FindTime:  gc.LastFoundTime,
+		CacheCode: gc.Code,
+		LogString: cf.LogText,
+		FindType:  cf.LogType,
+	})
 }
 
 // This returns the number of finds since local midnight for a given name.

@@ -79,9 +79,9 @@ func main() {
 				continue
 			}
 
-			cacheDB.AddLog(logs[0].UserName, gc.LastFoundTime, gc.Code, logs[0].LogText)
+			cacheDB.AddLog(&logs[0], &gc)
 
-			log.Debug("This log type is " + logs[0].LogType)
+			log.Debug("This log type is \"" + logs[0].LogType + "\"")
 
 			message := ""
 			message += "In " + config.Store.SearchTerms.AreaName + ", \"" + logs[0].UserName + "\""
