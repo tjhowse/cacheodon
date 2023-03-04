@@ -49,7 +49,7 @@ func main() {
 	}
 	defer cacheDB.Close()
 
-	v
+	var g *GeocachingAPI
 	if g, err = NewGeocachingAPI(config.Store.Configuration); err != nil {
 		log.Fatal(err)
 		os.Exit(1)

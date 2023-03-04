@@ -11,13 +11,6 @@ type Mastodon struct {
 	c *mastodon.Client
 }
 
-func (m *Mastodon) PostStatus(status string) error {
-	_, err := m.c.PostStatus(context.Background(), &mastodon.Toot{
-		Status: status,
-	})
-	return err
-}
-
 func NewMastodon() (*Mastodon, error) {
 	m := &Mastodon{}
 	m.c = mastodon.NewClient(&mastodon.Config{
@@ -30,4 +23,23 @@ func NewMastodon() (*Mastodon, error) {
 		return nil, err
 	}
 	return m, nil
+}
+
+// Posts a status update
+func (m *Mastodon) PostStatus(status string) error {
+	_, err := m.c.PostStatus(context.Background(), &mastodon.Toot{
+		Status: status,
+	})
+	return err
+}
+
+// Gets my last `n` statuses
+func (m *Mastodon) GetMyStatuses(n int64) ([]*mastodon.Status, error) {
+	if account, err := m.c.GetAccountCurrentUser(context.Background()); err != nil {
+		return nil, err
+	} else {
+		return m.c.GetAccountStatuses(context.Background(), account.ID, &mastodon.Pagination{
+			Limit: n,
+		})
+	}
 }
