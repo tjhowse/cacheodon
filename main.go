@@ -49,8 +49,12 @@ func main() {
 	}
 	defer cacheDB.Close()
 
-	g, _ := NewGeocachingAPI(config.Store.Configuration)
-	if err := g.Auth(os.Getenv("GEOCACHING_CLIENT_ID"), os.Getenv("GEOCACHING_CLIENT_SECRET")); err != nil {
+	v
+	if g, err = NewGeocachingAPI(config.Store.Configuration); err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+	if err = g.Auth(os.Getenv("GEOCACHING_CLIENT_ID"), os.Getenv("GEOCACHING_CLIENT_SECRET")); err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
