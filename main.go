@@ -20,7 +20,19 @@ func truncate(s string, max int) string {
 	}
 	return s
 }
-
+func printType(i interface{}) {
+	switch v := i.(type) {
+	case int:
+		log.Printf("type of %v is %v\n", i, v)
+		// type of 21 is int
+	case string:
+		log.Printf("type of %v is %v\n", i, v)
+		// type of hello is string
+	default:
+		log.Printf("type of %v is %v\n", i, v)
+		// type of true is bool
+	}
+}
 func main() {
 	var err error
 
@@ -68,6 +80,7 @@ func main() {
 	for {
 		// This should use cacheDB.GetLastPostedFoundTime(time.Now()) instead of
 		// config.Store.State.LastPostedFoundTime but it needs testing.
+		cacheDB.GetLastPostedFoundTime(time.Now())
 		if searchResults, err = g.SearchSince(
 			config.Store.SearchTerms,
 			config.Store.State.LastPostedFoundTime); err != nil {
@@ -86,6 +99,13 @@ func main() {
 			cacheDB.AddLog(&logs[0], &gc)
 
 			log.Debug("This log type is \"" + logs[0].LogType + "\"")
+			// Print whatever the images are if the log has one:
+			if len(logs[0].Images) > 0 {
+				for _, image := range logs[0].Images {
+					printType(image)
+				}
+			}
+			// TODO Consider trying to grab a photo from the log and attach it to the post
 
 			message := ""
 			message += "In " + config.Store.SearchTerms.AreaName + ", \"" + logs[0].UserName + "\""

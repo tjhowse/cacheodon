@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"testing"
 	"time"
 )
@@ -150,6 +151,11 @@ func TestLastPostedFoundTime(t *testing.T) {
 		t.Fatal(err)
 	} else {
 		defer db.Close()
+		// These should be overridden
+		db.SetLastPostedFoundTime(timeLater.Add(-1 * time.Hour))
+		db.GetLastPostedFoundTime(timeLater)
+		db.SetLastPostedFoundTime(timeLater.Add(1 * time.Hour))
+		db.GetLastPostedFoundTime(timeLater)
 		db.SetLastPostedFoundTime(timeNow)
 		if want, got := timeNow, db.GetLastPostedFoundTime(timeLater); want != got {
 			t.Fatalf("LastPostedFoundTime returned wrong value: want %s, got %s", want, got)
@@ -160,9 +166,20 @@ func TestLastPostedFoundTime(t *testing.T) {
 		t.Fatal(err)
 	} else {
 		defer db.Close()
+		// Read out the current state
 		if want, got := timeNow, db.GetLastPostedFoundTime(timeLater); want != got {
 			t.Fatalf("LastPostedFoundTime didn't remember the right value: want %s, got %s", want, got)
 		}
+		// Check that the State table only has one row
+		var got int64
+		db.db.Model(&State{}).Count(&got)
+		if got != 1 {
+			t.Fatalf("State table has wrong number of rows: want 1, got %d", got)
+		}
+	}
+	// Copy the temp db to /tmp/ so we can inspect it
+	if err := os.Rename(tempdir+"/test.sqlite3", "/tmp/test.sqlite3"); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -181,7 +198,8 @@ func TestLastPostedFoundTimeDefault(t *testing.T) {
 			t.Fatalf("LastPostedFoundTime returned wrong value: want %s, got %s", want, got)
 		}
 	}
-	// Check the value is persisted
+	// Check the value is persisted, and that the default timeNow is ignored in favour
+	// of returning the stored value.
 	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
 		t.Fatal(err)
 	} else {

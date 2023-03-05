@@ -61,10 +61,10 @@ func (f *FinderDB) Close() error {
 // This returns the last posted found time. If no time was saved, the default time is returned.
 func (f *FinderDB) GetLastPostedFoundTime(def time.Time) time.Time {
 	var state State
-	// TODO This doesn't work, RowsAffected is always 0 when
-	// doing a read.
-	if tx := f.db.First(&state); tx.RowsAffected == 0 {
-		// No state record exists, create one.
+	f.db.First(&state)
+	// If state.LastPostedFoundTime is zero, then we haven't saved a time yet.
+	// Save and return the default time.
+	if state.LastPostedFoundTime.IsZero() {
 		f.db.Create(&State{LastPostedFoundTime: def})
 		return def
 	}
