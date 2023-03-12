@@ -121,7 +121,9 @@ func main() {
 					log.Println(err)
 				}
 			}
-			message = truncate(message, 500)
+			geocachingHashtagString := " #geocaching"
+			message = truncate(message, 500-len(geocachingHashtagString))
+			message += geocachingHashtagString
 			if err := m.PostStatus(message); err != nil {
 				log.Println(err)
 				m = nil
