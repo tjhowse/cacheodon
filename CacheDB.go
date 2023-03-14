@@ -19,8 +19,9 @@ type CacheFind struct {
 
 type Cache struct {
 	gorm.Model
-	Code       string
-	PlacedTime time.Time
+	Code          string
+	PlacedTime    time.Time
+	LastFoundTime time.Time
 }
 
 type State struct {
@@ -87,19 +88,32 @@ func (f *FinderDB) SetLastPostedFoundTime(t time.Time) {
 
 // This adds a cache to the database. If the cache already exists, it is not added.
 // Returns true if the cache was added, false if it already existed.
-func (f *FinderDB) AddCache(gc *Geocache) (bool, error) {
-	if t, err := parseTime(gc.PlacedDate); err == nil {
-		// Check if a cache with this code already exists.
-		var count int64
-		f.db.Model(&Cache{}).Where("code = ?", gc.Code).Count(&count)
-		if count > 0 {
-			return false, nil
-		}
-		f.db.Create(&Cache{Code: gc.Code, PlacedTime: t})
-		return true, nil
-	} else {
-		return false, err
+func (f *FinderDB) AddCache(gc *Geocache) (new bool, updated bool, err error) {
+	var count int64
+	var t time.Time
+	if t, err = parseTime(gc.PlacedDate); err != nil {
+		return false, false, err
 	}
+	f.db.Model(&Cache{}).Where("code = ?", gc.Code).Count(&count)
+	if count == 0 {
+		// This is a new cache.
+		new = true
+		f.db.Create(&Cache{
+			Code:          gc.Code,
+			PlacedTime:    t,
+			LastFoundTime: gc.LastFoundTime,
+		})
+	} else {
+		// Update the record
+		var cache Cache
+		f.db.First(&cache, "code = ?", gc.Code)
+		if cache.LastFoundTime != gc.LastFoundTime {
+			updated = true
+			cache.LastFoundTime = gc.LastFoundTime
+			f.db.Save(&cache)
+		}
+	}
+	return new, updated, nil
 }
 
 // This adds a find to the database

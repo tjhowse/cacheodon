@@ -90,7 +90,7 @@ func TestPersistence(t *testing.T) {
 		if want, got := 1, db.FindsSinceTime("testname", timeMidnight); want != got {
 			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
 		}
-		if new, err := db.AddCache(&gc); err != nil {
+		if new, _, err := db.AddCache(&gc); err != nil {
 			t.Fatal(err)
 		} else {
 			if new {
@@ -112,7 +112,7 @@ func TestAddCache(t *testing.T) {
 			Code:       "GC123",
 			PlacedDate: "2023-03-02T16:44:59",
 		}
-		if new, err := db.AddCache(&gc); err != nil {
+		if new, _, err := db.AddCache(&gc); err != nil {
 			t.Fatal(err)
 		} else {
 			if !new {
@@ -121,19 +121,36 @@ func TestAddCache(t *testing.T) {
 		}
 		// Check the cache is there
 
-		if new, err := db.AddCache(&gc); err != nil {
+		if new, updated, err := db.AddCache(&gc); err != nil {
 			t.Fatal(err)
 		} else {
 			if new {
 				t.Fatal("Cache should not be new")
 			}
+			if updated {
+				t.Fatal("Cache should not be updated")
+			}
 		}
+
+		gc.LastFoundTime = gc.LastFoundTime.Add(time.Hour)
+
+		if new, updated, err := db.AddCache(&gc); err != nil {
+			t.Fatal(err)
+		} else {
+			if new {
+				t.Fatal("Cache should not be new")
+			}
+			if !updated {
+				t.Fatal("Cache should be updated")
+			}
+		}
+
 		gc = Geocache{
 			Code: "GC321",
 			// Deliberately bad timestamp
 			PlacedDate: "202asdasdfasdf02T16:44:59",
 		}
-		if new, err := db.AddCache(&gc); err == nil || new {
+		if new, _, err := db.AddCache(&gc); err == nil || new {
 			t.Fatal("Should have failed to add cache due to bad timestamp")
 		}
 
