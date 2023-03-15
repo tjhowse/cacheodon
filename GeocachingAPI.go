@@ -481,6 +481,10 @@ func (g *GeocachingAPI) Search(st searchTerms) ([]Geocache, error) {
 		return results[i].LessFoundDate(results[j])
 	})
 
+	if !st.IgnorePremium {
+		return results, nil
+	}
+
 	// Filter out the non-premium geocaches
 	var nonPremiumGeocaches []Geocache
 	for _, geocache := range results {

@@ -9,28 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// This truncates a string to the given maximum length and returns
-// the result. If truncation was necessary, it adds an elipsis to
-// the end of the string.
-func truncate(s string, max int) string {
-	if len(s) >= max {
-		return s[:max-1] + "…"
-	}
-	return s
-}
-func printType(i interface{}) {
-	switch v := i.(type) {
-	case int:
-		log.Printf("type of %v is %v\n", i, v)
-		// type of 21 is int
-	case string:
-		log.Printf("type of %v is %v\n", i, v)
-		// type of hello is string
-	default:
-		log.Printf("type of %v is %v\n", i, v)
-		// type of true is bool
-	}
-}
 func main() {
 	var err error
 

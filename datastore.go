@@ -8,10 +8,11 @@ import (
 )
 
 type searchTerms struct {
-	Latitude     float32
-	Longitude    float32
-	RadiusMeters int
-	AreaName     string
+	Latitude      float32
+	Longitude     float32
+	RadiusMeters  int
+	AreaName      string
+	IgnorePremium bool
 }
 
 type URLConfig struct {
@@ -26,7 +27,7 @@ type configStore struct {
 	}
 	Configuration URLConfig
 	SearchTerms   searchTerms
-	IgnorePremium bool
+	DBFilename    string
 }
 
 type config struct {
@@ -63,6 +64,10 @@ func NewDatastore(filename string) (*config, error) {
 				return nil, err
 			}
 		}
+	}
+	// Set some defaults
+	if c.Store.DBFilename == "" {
+		c.Store.DBFilename = "cacheodon.sqlite3"
 	}
 	return c, nil
 }
