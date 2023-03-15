@@ -7,8 +7,6 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/dustin/go-humanize"
 )
 
 // This truncates a string to the given maximum length and returns
@@ -54,90 +52,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	cacheDB, err := NewFinderDB("cacheodon.sqlite3")
-	if err != nil {
+	var g *Geocaching
+	if g, err = NewGeocaching(config.Store); err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
-	defer cacheDB.Close()
-
-	var g *GeocachingAPI
-	if g, err = NewGeocachingAPI(config.Store.Configuration); err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
-	if err = g.Auth(os.Getenv("GEOCACHING_CLIENT_ID"), os.Getenv("GEOCACHING_CLIENT_SECRET")); err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
-	log.Println("Authenticated")
-	var searchResults []Geocache
-	m, err := NewMastodon()
-	if err != nil {
-		log.Println(err)
-	}
-
+	defer g.Close()
+	var m *Mastodon
 	for {
-		// This should use cacheDB.GetLastPostedFoundTime(time.Now()) instead of
-		// config.Store.State.LastPostedFoundTime but it needs testing.
-		cacheDB.GetLastPostedFoundTime(time.Now())
-		if searchResults, err = g.SearchSince(
-			config.Store.SearchTerms,
-			config.Store.State.LastPostedFoundTime); err != nil {
-
-			log.Println(err)
-			time.Sleep(1 * time.Minute)
-			continue
-		}
-		for _, gc := range searchResults {
-			logs, err := g.GetLogs(&gc)
-			if err != nil || len(logs) == 0 {
-				log.Println(err)
-				continue
-			}
-
-			cacheDB.AddLog(&logs[0], &gc)
-
-			log.Debug("This log type is \"" + logs[0].LogType + "\"")
-			// Print whatever the images are if the log has one:
-			if len(logs[0].Images) > 0 {
-				for _, image := range logs[0].Images {
-					printType(image)
+		if posts, err := g.Update(); err == nil {
+			for _, post := range posts {
+				if m == nil {
+					m, err = NewMastodon()
+					if err != nil {
+						log.Println(err)
+					}
 				}
-			}
-			// TODO Consider trying to grab a photo from the log and attach it to the post
-
-			message := ""
-			message += "In " + config.Store.SearchTerms.AreaName + ", \"" + logs[0].UserName + "\""
-			message += " just found the \"" + gc.Name + "\" geocache! https://www.geocaching.com" + gc.DetailsURL
-			if findCount := cacheDB.FindsSinceMidnight(logs[0].UserName); findCount > 1 {
-				message += " That's their " + humanize.Ordinal(findCount) + " find today!"
-			}
-			message += " They wrote: \"" + logs[0].LogText + "\""
-
-			if m == nil {
-				m, err = NewMastodon()
-				if err != nil {
+				if err := m.PostStatus(post); err != nil {
 					log.Println(err)
+					m = nil
+				} else {
+					log.Println("Posted to Mastodon: " + post)
 				}
+				// Wait a random number of seconds between 3 and 8
+				time.Sleep(time.Duration(rand.Intn(5)+3) * time.Second)
 			}
-			geocachingHashtagString := " #geocaching"
-			message = truncate(message, 500-len(geocachingHashtagString))
-			message += geocachingHashtagString
-			if err := m.PostStatus(message); err != nil {
-				log.Println(err)
-				m = nil
-			} else {
-				log.Println("Posted to Mastodon: " + message)
-				cacheDB.SetLastPostedFoundTime(gc.LastFoundTime)
-				config.Store.State.LastPostedFoundTime = gc.LastFoundTime
-				if err := config.Save(); err != nil {
-					log.Fatal(err)
-					os.Exit(1)
-				}
-			}
-			// Wait a random number of seconds between 3 and 8
-			time.Sleep(time.Duration(rand.Intn(5)+3) * time.Second)
+		} else {
+			log.Println(err)
 		}
 		// Wait a random number of minutes between 3 and 8
 		time.Sleep(time.Duration(rand.Intn(5*60)+3*60) * time.Second)

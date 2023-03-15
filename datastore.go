@@ -26,6 +26,7 @@ type configStore struct {
 	}
 	Configuration URLConfig
 	SearchTerms   searchTerms
+	IgnorePremium bool
 }
 
 type config struct {

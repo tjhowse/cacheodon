@@ -81,7 +81,7 @@ func TestPersistence(t *testing.T) {
 	} else {
 		defer db.Close()
 		db.AddLog(getTestData("testname", timeNow, "GC123", "testlog"))
-		db.AddCache(&gc)
+		db.UpdateCache(&gc)
 	}
 	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
 		t.Fatal(err)
@@ -90,17 +90,13 @@ func TestPersistence(t *testing.T) {
 		if want, got := 1, db.FindsSinceTime("testname", timeMidnight); want != got {
 			t.Fatalf("FindsSinceMidnight returned wrong value: want %d, got %d", want, got)
 		}
-		if new, _, err := db.AddCache(&gc); err != nil {
-			t.Fatal(err)
-		} else {
-			if new {
-				t.Fatal("Cache should not be new")
-			}
+		if new, _ := db.UpdateCache(&gc); new {
+			t.Fatal("Cache should not be new")
 		}
 	}
 }
 
-func TestAddCache(t *testing.T) {
+func TestUpdateCache(t *testing.T) {
 	tempdir := t.TempDir()
 	// Create an empty DB
 	if db, err := NewFinderDB(tempdir + "/test.sqlite3"); err != nil {
@@ -112,18 +108,12 @@ func TestAddCache(t *testing.T) {
 			Code:       "GC123",
 			PlacedDate: "2023-03-02T16:44:59",
 		}
-		if new, _, err := db.AddCache(&gc); err != nil {
-			t.Fatal(err)
-		} else {
-			if !new {
-				t.Fatal("Cache should be new")
-			}
+		if new, _ := db.UpdateCache(&gc); !new {
+			t.Fatal("Cache should be new")
 		}
 		// Check the cache is there
-
-		if new, updated, err := db.AddCache(&gc); err != nil {
-			t.Fatal(err)
-		} else {
+		{
+			new, updated := db.UpdateCache(&gc)
 			if new {
 				t.Fatal("Cache should not be new")
 			}
@@ -134,9 +124,8 @@ func TestAddCache(t *testing.T) {
 
 		gc.LastFoundTime = gc.LastFoundTime.Add(time.Hour)
 
-		if new, updated, err := db.AddCache(&gc); err != nil {
-			t.Fatal(err)
-		} else {
+		{
+			new, updated := db.UpdateCache(&gc)
 			if new {
 				t.Fatal("Cache should not be new")
 			}
@@ -144,16 +133,6 @@ func TestAddCache(t *testing.T) {
 				t.Fatal("Cache should be updated")
 			}
 		}
-
-		gc = Geocache{
-			Code: "GC321",
-			// Deliberately bad timestamp
-			PlacedDate: "202asdasdfasdf02T16:44:59",
-		}
-		if new, _, err := db.AddCache(&gc); err == nil || new {
-			t.Fatal("Should have failed to add cache due to bad timestamp")
-		}
-
 	}
 }
 

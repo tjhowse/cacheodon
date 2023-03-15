@@ -20,8 +20,9 @@ type CacheFind struct {
 type Cache struct {
 	gorm.Model
 	Code          string
-	PlacedTime    time.Time
 	LastFoundTime time.Time
+	Updated       bool `gorm:"-"` // This is not stored in the database, it is used to track if the cache was updated.
+	New           bool `gorm:"-"` // This is not stored in the database, it is used to track if the cache was updated.
 }
 
 type State struct {
@@ -87,33 +88,30 @@ func (f *FinderDB) SetLastPostedFoundTime(t time.Time) {
 // TODO If a new cache shows up in the database publish a message about it.
 
 // This adds a cache to the database. If the cache already exists, it is not added.
-// Returns true if the cache was added, false if it already existed.
-func (f *FinderDB) AddCache(gc *Geocache) (new bool, updated bool, err error) {
+
+func (f *FinderDB) UpdateCache(gc *Geocache) (new bool, updated bool) {
 	var count int64
-	var t time.Time
-	if t, err = parseTime(gc.PlacedDate); err != nil {
-		return false, false, err
-	}
 	f.db.Model(&Cache{}).Where("code = ?", gc.Code).Count(&count)
 	if count == 0 {
 		// This is a new cache.
-		new = true
 		f.db.Create(&Cache{
 			Code:          gc.Code,
-			PlacedTime:    t,
 			LastFoundTime: gc.LastFoundTime,
+			New:           true,
 		})
+		new = true
 	} else {
 		// Update the record
 		var cache Cache
 		f.db.First(&cache, "code = ?", gc.Code)
 		if cache.LastFoundTime != gc.LastFoundTime {
+			cache.Updated = true
 			updated = true
 			cache.LastFoundTime = gc.LastFoundTime
 			f.db.Save(&cache)
 		}
 	}
-	return new, updated, nil
+	return new, updated
 }
 
 // This adds a find to the database
