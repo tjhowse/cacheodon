@@ -30,8 +30,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	var api GeocachingAPIer
+	if api, err = NewGeocachingAPI(config.Store.Configuration); err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
 	var g *Geocaching
-	if g, err = NewGeocaching(config.Store); err != nil {
+	if g, err = NewGeocaching(config.Store, api); err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}

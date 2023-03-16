@@ -8,25 +8,28 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type GeocachingAPIer interface {
+	Auth(clientID, clientSecret string) error
+	Search(st searchTerms) ([]Geocache, error)
+	GetLogs(geocache *Geocache) ([]GeocacheLog, error)
+}
+
 type Geocaching struct {
-	api  *GeocachingAPI
+	api  GeocachingAPIer
 	db   *FinderDB
 	conf configStore
 }
 
-func NewGeocaching(conf configStore) (*Geocaching, error) {
+func NewGeocaching(conf configStore, api GeocachingAPIer) (*Geocaching, error) {
 	var err error
 	g := &Geocaching{}
 	g.conf = conf
-	if g.api, err = NewGeocachingAPI(g.conf.Configuration); err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
+	g.api = api
 	if err = g.api.Auth(os.Getenv("GEOCACHING_CLIENT_ID"), os.Getenv("GEOCACHING_CLIENT_SECRET")); err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
-	g.db, err = NewFinderDB("cacheodon.sqlite3")
+	g.db, err = NewFinderDB(conf.DBFilename)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
