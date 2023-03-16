@@ -10,16 +10,13 @@ import (
 )
 
 type mockGeocachingApi struct {
+	caches []Geocache
+	logs   []GeocacheLog
 }
 
-func (m *mockGeocachingApi) Auth(clientID, clientSecret string) error {
-	fmt.Println("Auth called")
-	return nil
-}
-
-func (m *mockGeocachingApi) Search(st searchTerms) ([]Geocache, error) {
-	fmt.Println("Search called")
-	results := []Geocache{
+// Populate some dummy data into the struct
+func (m *mockGeocachingApi) populate() {
+	m.caches = []Geocache{
 		{
 			ID:             123456,
 			Name:           "Secret Hideout",
@@ -66,16 +63,10 @@ func (m *mockGeocachingApi) Search(st searchTerms) ([]Geocache, error) {
 			GUID:          "a8cf16ab-5a5d-42a2-9a8e-2b33d431c758",
 		},
 	}
-	return results, nil
-}
-
-func (m *mockGeocachingApi) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
-	fmt.Println("GetLogs called")
-
-	results := []GeocacheLog{
+	m.logs = []GeocacheLog{
 		{
 			LogID:               2150129950,
-			CacheID:             geocache.ID,
+			CacheID:             123456,
 			LogGUID:             "fc59d67c-ccda-45a7-ad5c-f9a09f040d60",
 			Latitude:            37.7749,
 			Longitude:           -122.4194,
@@ -83,7 +74,7 @@ func (m *mockGeocachingApi) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 			LogTypeID:           1,
 			LogType:             "Attended",
 			LogTypeImage:        "1.png",
-			LogText:             "<p>Had a great time at this event. Thanks for hosting!</p>\n",
+			LogText:             "Had a great time at this event. Thanks for hosting!\n",
 			Created:             "3/16/2023",
 			Visited:             "3/16/2023",
 			UserName:            "Amy",
@@ -106,17 +97,41 @@ func (m *mockGeocachingApi) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 			Images: []any{},
 		},
 	}
-	return results, nil
+}
+
+// Advance the last found date on the stored cache
+func (m *mockGeocachingApi) advanceLastFoundDate() {
+	m.caches[0].LastFoundTime = m.caches[0].LastFoundTime.Add(time.Hour * 24)
+}
+
+func (m *mockGeocachingApi) Auth(clientID, clientSecret string) error {
+	fmt.Println("Auth called")
+	return nil
+}
+
+func (m *mockGeocachingApi) Search(st searchTerms) ([]Geocache, error) {
+	fmt.Println("Search called")
+	return m.caches, nil
+}
+
+func (m *mockGeocachingApi) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
+	fmt.Println("GetLogs called")
+	return m.logs, nil
 }
 
 func TestUpdate(t *testing.T) {
 	var err error
 	tempdir := t.TempDir()
 	conf := configStore{
+		SearchTerms: searchTerms{
+			AreaName: "Blerpville",
+		},
 		DBFilename: tempdir + "/test.sqlite3",
 	}
 	var g *Geocaching
-	if g, err = NewGeocaching(conf, &mockGeocachingApi{}); err != nil {
+	api := &mockGeocachingApi{}
+	api.populate()
+	if g, err = NewGeocaching(conf, api); err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
@@ -135,7 +150,20 @@ func TestUpdate(t *testing.T) {
 		fmt.Println(log)
 	}
 
-	// TODO Poke the fake API to update the found date on its stored cache
+	// Advance the last found date on the mock cache
+	api.advanceLastFoundDate()
+	logs, err = g.Update()
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	if len(logs) != 1 {
+		t.Errorf("Expected 1 log, got %d", len(logs))
+	}
+	for _, log := range logs {
+		fmt.Println(log)
+	}
+	// TODO Check that we get the "That's their second find for the day!" thing.
+	api.advanceLastFoundDate()
 	logs, err = g.Update()
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)

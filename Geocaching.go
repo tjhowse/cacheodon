@@ -67,7 +67,7 @@ func (g *Geocaching) Update() ([]string, error) {
 		if updated {
 			log.Printf("Updated cache: %+v", cache.Name)
 			if post, err := g.WriteFoundPost(&cache); err == nil {
-				results = append(results, post)
+				results = append(results, post.toString())
 			} else {
 				log.Error(err)
 			}
@@ -86,26 +86,64 @@ func truncate(s string, max int) string {
 	return s
 }
 
-func (g *Geocaching) WriteFoundPost(gc *Geocache) (string, error) {
-	var err error
-	var logs []GeocacheLog
-	if logs, err = g.GetLogs(gc); err != nil {
-		return "", err
-	}
-	g.db.AddLog(&logs[0], gc)
+type findPostDetails struct {
+	AreaName   string
+	UserName   string
+	CacheName  string
+	DetailsURL string
+	FindCount  int
+	LogText    string
+}
+
+func (p *findPostDetails) toString() string {
+	// Choose a random template from cacheFindPostTemplates
+	// template := cacheFindPostTemplates[0]
+
 	message := ""
-	message += "In " + g.conf.SearchTerms.AreaName + ", \"" + logs[0].UserName + "\""
-	message += " just found the \"" + gc.Name + "\" geocache! https://www.geocaching.com" + gc.DetailsURL
-	if findCount := g.db.FindsSinceMidnight(logs[0].UserName); findCount > 1 {
-		message += " That's their " + humanize.Ordinal(findCount) + " find today!"
+	message += "In " + p.AreaName + ", \"" + p.UserName + "\""
+	message += " just found the \"" + p.CacheName + "\" geocache! " + p.DetailsURL
+	if p.FindCount > 1 {
+		message += " That's their " + humanize.Ordinal(p.FindCount) + " find today!"
 	}
-	message += " They wrote: \"" + logs[0].LogText + "\""
+	message += " They wrote: \"" + p.LogText + "\""
+
+	// if template, err := template.New("test").Parse(
+	// 	`In {{.AreaName}}, "{{.UserName}}" just found the "{{.CacheName}}" geocache! ` +
+	// 		`{{.DetailsURL}}{{if gt .FindCount 1}}That's their {{.FindCount}} find today!{{end}} ` +
+	// 		`They wrote: "{{.LogText}}"`); err == nil {
+	// 	var buf bytes.Buffer
+	// 	if err := template.Execute(&buf, p); err != nil {
+	// 		log.Error(err)
+	// 	}
+	// 	message = buf.String()
+	// } else {
+	// 	log.Error(err)
+	// }
 
 	geocachingHashtagString := " #geocaching"
 	message = truncate(message, 500-len(geocachingHashtagString))
 	message += geocachingHashtagString
+	return message
+}
 
-	return message, nil
+func (g *Geocaching) WriteFoundPost(gc *Geocache) (findPostDetails, error) {
+	var err error
+	var logs []GeocacheLog
+	if logs, err = g.GetLogs(gc); err != nil {
+		return findPostDetails{}, err
+	}
+	g.db.AddLog(&logs[0], gc)
+
+	p := findPostDetails{
+		AreaName:   g.conf.SearchTerms.AreaName,
+		UserName:   logs[0].UserName,
+		CacheName:  gc.Name,
+		DetailsURL: "https://www.geocaching.com" + gc.DetailsURL,
+		FindCount:  g.db.FindsSinceMidnight(logs[0].UserName),
+		LogText:    logs[0].LogText,
+	}
+
+	return p, nil
 }
 
 func (g *Geocaching) WriteNewCachePost(gc *Geocache) (string, error) {
