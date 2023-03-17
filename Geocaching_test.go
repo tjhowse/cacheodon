@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -43,7 +42,7 @@ func (m *mockGeocachingApi) populate() {
 				Username string `json:"username"`
 			}{
 				Code:     "ABC123",
-				Username: "johndoe",
+				Username: "JimblyBimbly",
 			},
 			LastFoundDate:  "2022-05-01T12:00:00",
 			TrackableCount: 2,
@@ -138,13 +137,17 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	if len(logs) != 1 {
-		t.Errorf("Expected 1 log, got %d", len(logs))
+	if want, got := 1, len(logs); want != got {
+		t.Errorf("Expected %d logs, got %d", want, got)
 	}
 
-	// TODO check that we get a "New cache appeared!" log message
-	for _, log := range logs {
-		fmt.Println(log)
+	// Check that this cache showed up as a new one
+	if !logs[0].NewCache {
+		t.Errorf("Expected this to be a new cache")
+	}
+	// Check that it has the owner's details, not the owner's
+	if want, got := "JimblyBimbly", logs[0].UserName; want != got {
+		t.Errorf("Expected the owner to be %s, got %s", want, got)
 	}
 
 	// Advance the last found date on the mock cache
@@ -153,23 +156,41 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	if len(logs) != 1 {
-		t.Errorf("Expected 1 log, got %d", len(logs))
+	if want, got := 1, len(logs); want != got {
+		t.Errorf("Expected %d logs, got %d", want, got)
 	}
-	for _, log := range logs {
-		fmt.Println(log)
+	// Check that it is no longer a new cache
+	if logs[0].NewCache {
+		t.Errorf("Expected this to not be a new cache")
 	}
+	// Check that it has the finder's details, not the owner's
+	if want, got := "Amy", logs[0].UserName; want != got {
+		t.Errorf("Expected the finder to be %s, got %s", want, got)
+	}
+
 	// TODO Check that we get the "That's their second find for the day!" thing.
 	api.advanceLastFoundDate()
 	logs, err = g.Update()
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	if len(logs) != 1 {
-		t.Errorf("Expected 1 log, got %d", len(logs))
+	if want, got := 1, len(logs); want != got {
+		t.Errorf("Expected %d logs, got %d", want, got)
 	}
-	for _, log := range logs {
-		fmt.Println(log)
+	// Check that it has the finder's details, not the owner's
+	if want, got := "Amy", logs[0].UserName; want != got {
+		t.Errorf("Expected the finder to be %s, got %s", want, got)
+	}
+	if want, got := 2, logs[0].UsersFindsToday; want != got {
+		t.Errorf("Expected the finder to have found %d caches, got %d", want, got)
+	}
+
+	logs, err = g.Update()
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	if want, got := 0, len(logs); want != got {
+		t.Errorf("Expected %d logs, got %d", want, got)
 	}
 
 }

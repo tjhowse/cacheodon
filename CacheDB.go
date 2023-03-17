@@ -104,7 +104,7 @@ func (f *FinderDB) UpdateCache(gc *Geocache) (new bool, updated bool) {
 		// Update the record
 		var cache Cache
 		f.db.First(&cache, "code = ?", gc.Code)
-		if cache.LastFoundTime != gc.LastFoundTime {
+		if !cache.LastFoundTime.Equal(gc.LastFoundTime) {
 			cache.Updated = true
 			updated = true
 			cache.LastFoundTime = gc.LastFoundTime
