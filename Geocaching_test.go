@@ -105,17 +105,14 @@ func (m *mockGeocachingApi) advanceLastFoundDate() {
 }
 
 func (m *mockGeocachingApi) Auth(clientID, clientSecret string) error {
-	fmt.Println("Auth called")
 	return nil
 }
 
 func (m *mockGeocachingApi) Search(st searchTerms) ([]Geocache, error) {
-	fmt.Println("Search called")
 	return m.caches, nil
 }
 
 func (m *mockGeocachingApi) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
-	fmt.Println("GetLogs called")
 	return m.logs, nil
 }
 
@@ -136,7 +133,7 @@ func TestUpdate(t *testing.T) {
 		os.Exit(1)
 	}
 	defer g.Close()
-	var logs []string
+	var logs []postDetails
 	logs, err = g.Update()
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)

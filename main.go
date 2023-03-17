@@ -51,11 +51,12 @@ func main() {
 						log.Println(err)
 					}
 				}
-				if err := m.PostStatus(post); err != nil {
+				postString := post.toString()
+				if err := m.PostStatus(postString); err != nil {
 					log.Println(err)
 					m = nil
 				} else {
-					log.Println("Posted to Mastodon: " + post)
+					log.Println("Posted to Mastodon: " + postString)
 				}
 				// Wait a random number of seconds between 3 and 8
 				time.Sleep(time.Duration(rand.Intn(5)+3) * time.Second)

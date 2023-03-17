@@ -43,11 +43,10 @@ func (g *Geocaching) Close() {
 }
 
 // This polls the API for a list of geocaches and updates our database
-// with the results. It returns a slice of strings containg the posts
-// detailing the new or updated geocaches that should be posted to
-// mastodon.
-func (g *Geocaching) Update() ([]string, error) {
-	var results []string
+// with the results. It returns a slice of postDetails containing the
+// information necessary to produce a post about the cache.
+func (g *Geocaching) Update() ([]postDetails, error) {
+	var results []postDetails
 
 	caches, err := g.api.Search(g.conf.SearchTerms)
 	if err != nil {
@@ -67,7 +66,7 @@ func (g *Geocaching) Update() ([]string, error) {
 		if updated {
 			log.Printf("Updated cache: %+v", cache.Name)
 			if post, err := g.WriteFoundPost(&cache); err == nil {
-				results = append(results, post.toString())
+				results = append(results, post)
 			} else {
 				log.Error(err)
 			}
@@ -75,6 +74,8 @@ func (g *Geocaching) Update() ([]string, error) {
 	}
 	return results, nil
 }
+
+// func (g *Geocaching)
 
 // This truncates a string to the given maximum length and returns
 // the result. If truncation was necessary, it adds an elipsis to
@@ -86,16 +87,17 @@ func truncate(s string, max int) string {
 	return s
 }
 
-type findPostDetails struct {
+type postDetails struct {
 	AreaName   string
 	UserName   string
 	CacheName  string
 	DetailsURL string
 	FindCount  int
 	LogText    string
+	NewCache   bool
 }
 
-func (p *findPostDetails) toString() string {
+func (p *postDetails) toString() string {
 	// Choose a random template from cacheFindPostTemplates
 	// template := cacheFindPostTemplates[0]
 
@@ -126,28 +128,39 @@ func (p *findPostDetails) toString() string {
 	return message
 }
 
-func (g *Geocaching) WriteFoundPost(gc *Geocache) (findPostDetails, error) {
+func (g *Geocaching) WriteFoundPost(gc *Geocache) (postDetails, error) {
 	var err error
 	var logs []GeocacheLog
 	if logs, err = g.GetLogs(gc); err != nil {
-		return findPostDetails{}, err
+		return postDetails{}, err
 	}
 	g.db.AddLog(&logs[0], gc)
 
-	p := findPostDetails{
+	p := postDetails{
 		AreaName:   g.conf.SearchTerms.AreaName,
 		UserName:   logs[0].UserName,
 		CacheName:  gc.Name,
 		DetailsURL: "https://www.geocaching.com" + gc.DetailsURL,
 		FindCount:  g.db.FindsSinceMidnight(logs[0].UserName),
 		LogText:    logs[0].LogText,
+		NewCache:   false,
 	}
 
 	return p, nil
 }
 
-func (g *Geocaching) WriteNewCachePost(gc *Geocache) (string, error) {
-	return "", nil
+func (g *Geocaching) WriteNewCachePost(gc *Geocache) (postDetails, error) {
+	p := postDetails{
+		AreaName:   g.conf.SearchTerms.AreaName,
+		UserName:   gc.Owner.Username,
+		CacheName:  gc.Name,
+		DetailsURL: "https://www.geocaching.com" + gc.DetailsURL,
+		FindCount:  0,
+		LogText:    "",
+		NewCache:   true,
+	}
+
+	return p, nil
 }
 
 func (g *Geocaching) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
