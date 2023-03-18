@@ -66,8 +66,6 @@ func (g *Geocaching) Update() ([]postDetails, error) {
 	return results, nil
 }
 
-// func (g *Geocaching)
-
 // This truncates a string to the given maximum length and returns
 // the result. If truncation was necessary, it adds an elipsis to
 // the end of the string.

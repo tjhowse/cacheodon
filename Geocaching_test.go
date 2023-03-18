@@ -276,8 +276,13 @@ func TestUpdate(t *testing.T) {
 	if want, got := "Amy", logs[0].UserName; want != got {
 		t.Errorf("Expected the finder to be %s, got %s", want, got)
 	}
+	// Check the very long message was truncated properly.
 	if want, got := 500, len(logs[0].toString()); want != got {
 		t.Errorf("Expected the log to be %d characters, got %d", want, got)
+	}
+	// Check the truncated string ends with "" #geocaching"
+	if want, got := `" #geocaching`, logs[0].toString()[len(logs[0].toString())-13:]; want != got {
+		t.Errorf("Expected the log to end with %q, got %q", want, got)
 	}
 
 	// TODO Check that we get the "That's their second find for the day!" thing.
