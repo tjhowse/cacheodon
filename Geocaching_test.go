@@ -109,16 +109,42 @@ func (m *mockGeocachingApi) populate() {
 	}
 	m.logs = []GeocacheLog{
 		{
-			LogID:               2150129950,
-			CacheID:             123456,
-			LogGUID:             "fc59d67c-ccda-45a7-ad5c-f9a09f040d60",
-			Latitude:            37.7749,
-			Longitude:           -122.4194,
-			LatLonString:        "37.7749,-122.4194",
-			LogTypeID:           1,
-			LogType:             "Found it",
-			LogTypeImage:        "1.png",
-			LogText:             "Had a great time at this event. Thanks for hosting!\n",
+			LogID:        2150129950,
+			CacheID:      123456,
+			LogGUID:      "fc59d67c-ccda-45a7-ad5c-f9a09f040d60",
+			Latitude:     37.7749,
+			Longitude:    -122.4194,
+			LatLonString: "37.7749,-122.4194",
+			LogTypeID:    1,
+			LogType:      "Found it",
+			LogTypeImage: "1.png",
+			LogText: `Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!
+								Had a great time at this event. Thanks for hosting!`,
 			Created:             "3/16/2023",
 			Visited:             "3/16/2023",
 			UserName:            "Amy",
@@ -249,6 +275,9 @@ func TestUpdate(t *testing.T) {
 	// Check that it has the finder's details, not the owner's
 	if want, got := "Amy", logs[0].UserName; want != got {
 		t.Errorf("Expected the finder to be %s, got %s", want, got)
+	}
+	if want, got := 500, len(logs[0].toString()); want != got {
+		t.Errorf("Expected the log to be %d characters, got %d", want, got)
 	}
 
 	// TODO Check that we get the "That's their second find for the day!" thing.

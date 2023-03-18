@@ -56,7 +56,7 @@ func main() {
 					continue
 				}
 				postString := post.toString()
-				log.Println("Posted to Mastodon: " + postString)
+				// log.Println("Posted to Mastodon: " + postString)
 				if err := m.PostStatus(postString); err != nil {
 					log.Println(err)
 					m = nil

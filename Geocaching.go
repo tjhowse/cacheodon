@@ -73,7 +73,7 @@ func (g *Geocaching) Update() ([]postDetails, error) {
 // the end of the string.
 func truncate(s string, max int) string {
 	if len(s) >= max {
-		return s[:max-2] + "…\""
+		return s[:max-4] + "…\""
 	}
 	return s
 }
