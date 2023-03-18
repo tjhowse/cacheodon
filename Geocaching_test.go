@@ -20,7 +20,7 @@ func (m *mockGeocachingApi) populate() {
 			ID:             123456,
 			Name:           "Secret Hideout",
 			Code:           "GC1234",
-			PremiumOnly:    true,
+			PremiumOnly:    false,
 			FavoritePoints: 5,
 			GeocacheType:   1,
 			ContainerType:  2,
@@ -61,6 +61,51 @@ func (m *mockGeocachingApi) populate() {
 			LastFoundTime: time.Now(),
 			GUID:          "a8cf16ab-5a5d-42a2-9a8e-2b33d431c758",
 		},
+		{
+			ID:             789123,
+			Name:           "Bingo Hall",
+			Code:           "GC456798",
+			PremiumOnly:    false,
+			FavoritePoints: 5,
+			GeocacheType:   1,
+			ContainerType:  2,
+			Difficulty:     3.5,
+			Terrain:        2.5,
+			CacheStatus:    1,
+			PostedCoordinates: struct {
+				Latitude  float64 `json:"latitude"`
+				Longitude float64 `json:"longitude"`
+			}{
+				Latitude:  37.7749,
+				Longitude: -122.4194,
+			},
+			DetailsURL: "/geocache/GC456798",
+			HasGeotour: false,
+			PlacedDate: "2020-02-03T10:00:00",
+			Owner: struct {
+				Code     string `json:"code"`
+				Username string `json:"username"`
+			}{
+				Code:     "ABC123",
+				Username: "PrinceOfBingo",
+			},
+			LastFoundDate:  "2022-07-11T12:12:34",
+			TrackableCount: 2,
+			Region:         "California",
+			Country:        "United States",
+			Attributes: []struct {
+				ID           int    `json:"id"`
+				Name         string `json:"name"`
+				IsApplicable bool   `json:"isApplicable"`
+			}{
+				{ID: 24, Name: "Wheelchair accessible", IsApplicable: false},
+				{ID: 8, Name: "Scenic view", IsApplicable: true},
+			},
+			Distance:      "2.3mi",
+			Bearing:       "NW",
+			LastFoundTime: time.Now(),
+			GUID:          "a8cf16ab-5a5d-42a2-9a8e-2b33d431c758",
+		},
 	}
 	m.logs = []GeocacheLog{
 		{
@@ -71,7 +116,7 @@ func (m *mockGeocachingApi) populate() {
 			Longitude:           -122.4194,
 			LatLonString:        "37.7749,-122.4194",
 			LogTypeID:           1,
-			LogType:             "Attended",
+			LogType:             "Found it",
 			LogTypeImage:        "1.png",
 			LogText:             "Had a great time at this event. Thanks for hosting!\n",
 			Created:             "3/16/2023",
@@ -95,12 +140,44 @@ func (m *mockGeocachingApi) populate() {
 			},
 			Images: []any{},
 		},
+		{
+			LogID:               2150129950,
+			CacheID:             789123,
+			LogGUID:             "fc59d67c-ccda-45a7-ad5c-f9a09f040d60",
+			Latitude:            37.7749,
+			Longitude:           -122.4194,
+			LatLonString:        "37.7749,-122.4194",
+			LogTypeID:           1,
+			LogType:             "Found it",
+			LogTypeImage:        "1.png",
+			LogText:             "dogs dogs dogs!\n",
+			Created:             "3/16/2023",
+			Visited:             "3/16/2023",
+			UserName:            "Beepo",
+			MembershipLevel:     3,
+			AccountID:           16998345,
+			AccountGUID:         "8fa1b05c-d5f5-4f9c-8f0b-634b88017772",
+			Email:               "amy@example.com",
+			AvatarImage:         "https://www.example.com/avatar.jpg",
+			GeocacheFindCount:   1123,
+			GeocacheHideCount:   5,
+			ChallengesCompleted: 2,
+			IsEncoded:           true,
+			Creator: struct {
+				GroupTitle    string `json:"GroupTitle"`
+				GroupImageURL string `json:"GroupImageUrl"`
+			}{
+				GroupTitle:    "Premium Member",
+				GroupImageURL: "/images/icons/prem_user.gif",
+			},
+			Images: []any{},
+		},
 	}
 }
 
 // Advance the last found date on the stored cache
-func (m *mockGeocachingApi) advanceLastFoundDate() {
-	m.caches[0].LastFoundTime = m.caches[0].LastFoundTime.Add(time.Hour * 24)
+func (m *mockGeocachingApi) advanceLastFoundDate(index int) {
+	m.caches[index].LastFoundTime = m.caches[index].LastFoundTime.Add(time.Hour * 24)
 }
 
 func (m *mockGeocachingApi) Auth(clientID, clientSecret string) error {
@@ -112,7 +189,13 @@ func (m *mockGeocachingApi) Search(st searchTerms) ([]Geocache, error) {
 }
 
 func (m *mockGeocachingApi) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
-	return m.logs, nil
+	var logs []GeocacheLog
+	for _, log := range m.logs {
+		if log.CacheID == geocache.ID {
+			logs = append(logs, log)
+		}
+	}
+	return logs, nil
 }
 
 func TestUpdate(t *testing.T) {
@@ -137,7 +220,7 @@ func TestUpdate(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
 	}
-	if want, got := 1, len(logs); want != got {
+	if want, got := 2, len(logs); want != got {
 		t.Errorf("Expected %d logs, got %d", want, got)
 	}
 
@@ -151,7 +234,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	// Advance the last found date on the mock cache
-	api.advanceLastFoundDate()
+	api.advanceLastFoundDate(0)
 	logs, err = g.Update()
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
@@ -169,7 +252,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	// TODO Check that we get the "That's their second find for the day!" thing.
-	api.advanceLastFoundDate()
+	api.advanceLastFoundDate(0)
 	logs, err = g.Update()
 	if err != nil {
 		t.Errorf("Expected no error, got %s", err)
@@ -193,4 +276,25 @@ func TestUpdate(t *testing.T) {
 		t.Errorf("Expected %d logs, got %d", want, got)
 	}
 
+	api.advanceLastFoundDate(1)
+	logs, err = g.Update()
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	if want, got := 1, len(logs); want != got {
+		t.Errorf("Expected %d logs, got %d", want, got)
+	}
+	// Check that it has the finder's details, not the owner's
+	if want, got := "Beepo", logs[0].UserName; want != got {
+		t.Errorf("Expected the finder to be %s, got %s", want, got)
+	}
+	api.advanceLastFoundDate(0)
+	api.advanceLastFoundDate(1)
+	logs, err = g.Update()
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	if want, got := 2, len(logs); want != got {
+		t.Errorf("Expected %d logs, got %d", want, got)
+	}
 }

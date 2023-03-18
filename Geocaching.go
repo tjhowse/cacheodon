@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"time"
 
 	"github.com/dustin/go-humanize"
 	log "github.com/sirupsen/logrus"
@@ -135,33 +134,4 @@ func (g *Geocaching) buildPostDetails(gc *Geocache, new, updated bool) (postDeta
 
 func (g *Geocaching) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 	return g.api.GetLogs(geocache)
-}
-
-// This returns all geocaches with a LastFoundDate later than the given date
-func (g *Geocaching) SearchSince(st searchTerms, since time.Time) ([]Geocache, error) {
-	var err error
-	var results []Geocache
-
-	if results, err = g.api.Search(st); err != nil {
-		return nil, err
-	}
-
-	return FilterFoundSince(results, since), nil
-}
-
-// This filters a []Geocache to only include those that have a LastFoundDate later than the given date
-func FilterFoundSince(geocaches []Geocache, since time.Time) []Geocache {
-	// The results are sorted by LastFoundDate, so we can just iterate backwards until we find
-	// the first result that is before the given date.
-	for i := len(geocaches) - 1; i >= 0; i-- {
-		if geocaches[i].LastFoundTime.Before(since) || geocaches[i].LastFoundTime.Equal(since) {
-			return geocaches[i+1:]
-		}
-	}
-	return []Geocache{}
-}
-
-// Returns a slice of geocaches that have been updated since we last checked.
-func SearchUpdated(st searchTerms) ([]Geocache, error) {
-	return nil, nil
 }

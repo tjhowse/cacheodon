@@ -51,15 +51,18 @@ func main() {
 						log.Println(err)
 					}
 				}
-				postString := post.toString()
-				if err := m.PostStatus(postString); err != nil {
-					log.Println(err)
-					m = nil
-				} else {
-					log.Println("Posted to Mastodon: " + postString)
+				if post.NewCache {
+					// Don't post about new caches yet.
+					continue
 				}
-				// Wait a random number of seconds between 3 and 8
-				time.Sleep(time.Duration(rand.Intn(5)+3) * time.Second)
+				postString := post.toString()
+				log.Println("Posted to Mastodon: " + postString)
+				// if err := m.PostStatus(postString); err != nil {
+				// 	log.Println(err)
+				// 	m = nil
+				// } else {
+				// 	log.Println("Posted to Mastodon: " + postString)
+				// }
 			}
 		} else {
 			log.Println(err)

@@ -363,6 +363,9 @@ func (g *GeocachingAPI) SanitiseLogText(text string) string {
 func (g *GeocachingAPI) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 	var err error
 
+	// Wait a random number of seconds between 3 and 8
+	time.Sleep(time.Duration(rand.Intn(5)+3) * time.Second)
+
 	// Get the GUID for the geocache, if required
 	if geocache.GUID == "" {
 		err = g.GetGUIDForGeocache(geocache)

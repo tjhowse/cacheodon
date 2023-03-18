@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"time"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -22,9 +21,6 @@ type URLConfig struct {
 }
 
 type configStore struct {
-	State struct {
-		LastPostedFoundTime time.Time
-	}
 	Configuration URLConfig
 	SearchTerms   searchTerms
 	DBFilename    string
@@ -59,7 +55,6 @@ func NewDatastore(filename string) (*config, error) {
 	}
 	if err := c.Load(); err != nil {
 		if os.IsNotExist(err) {
-			c.Store.State.LastPostedFoundTime = time.Now()
 			if err := c.Save(); err != nil {
 				return nil, err
 			}

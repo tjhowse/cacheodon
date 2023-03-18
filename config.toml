@@ -1,6 +1,3 @@
-[State]
-LastPostedFoundTime = 2023-03-01T09:29:51+10:00
-
 [Configuration]
 HTTPProxyURL = ''
 GeocachingAPIURL = 'https://www.geocaching.com'
@@ -10,3 +7,4 @@ Latitude = -27.46794
 Longitude = 153.02809
 RadiusMeters = 16000
 AreaName = 'Brisbane'
+IgnorePremium = true
