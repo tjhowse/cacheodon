@@ -57,12 +57,12 @@ func main() {
 				}
 				postString := post.toString()
 				log.Println("Posted to Mastodon: " + postString)
-				// if err := m.PostStatus(postString); err != nil {
-				// 	log.Println(err)
-				// 	m = nil
-				// } else {
-				// 	log.Println("Posted to Mastodon: " + postString)
-				// }
+				if err := m.PostStatus(postString); err != nil {
+					log.Println(err)
+					m = nil
+				} else {
+					log.Println("Posted to Mastodon: " + postString)
+				}
 			}
 		} else {
 			log.Println(err)
