@@ -347,8 +347,14 @@ func (g *GeocachingAPI) GetGUIDForGeocache(geocache *Geocache) error {
 	return nil
 }
 
-func (g *GeocachingAPI) SanitiseLogText(text string) string {
-	return html.UnescapeString(strings.TrimSpace(g.blueMondayPolicy.Sanitize(text)))
+func (g *GeocachingAPI) SanitiseLogText(text string) (result string) {
+	result = text
+	// Strip newlines
+	result = g.blueMondayPolicy.Sanitize(result)
+	result = strings.TrimSpace(result)
+	result = html.UnescapeString(result)
+	result = strings.ReplaceAll(result, "\n", " ")
+	return
 }
 
 // This returns a slice of the logs associated with a given geocache ID
