@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"testing"
 
-	"github.com/brianvoe/gofakeit"
+	"github.com/brianvoe/gofakeit/v6"
 )
 
 func TestAuthSuccess(t *testing.T) {
@@ -144,14 +145,15 @@ func TestAuthFail2(t *testing.T) {
 func TestSearchQuery(t *testing.T) {
 	searchLat := float32(51.0)
 	searchLon := float32(22.0)
+	gofakeit.Seed(0)
 	// Generate a bunch of fake geocache data using: https://github.com/brianvoe/gofakeit
 	// At least 1001 caches to get the pagination working.
 	totalCaches := 1001
 	fakeCaches := make([]Geocache, totalCaches)
 	for i := 0; i < totalCaches; i++ {
-		cache := Geocache{}
-		gofakeit.Struct(&cache)
-		fakeCaches = append(fakeCaches, cache)
+		gofakeit.Struct(&fakeCaches[i])
+		fakeCaches[i].PlacedDate = fakeCaches[i].PlacedDate[:len(fakeCaches[i].PlacedDate)-1]
+		fakeCaches[i].LastFoundDate = fakeCaches[i].LastFoundDate[:len(fakeCaches[i].LastFoundDate)-1]
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
@@ -169,7 +171,7 @@ func TestSearchQuery(t *testing.T) {
 				if want, got := originString, r.Form.Get("origin"); want != got {
 					t.Errorf("Expected origin to be '%s', got: %s", want, got)
 				}
-				if want, got := "1234", r.Form.Get("radius"); want != got {
+				if want, got := "1234", r.Form.Get("rad"); want != got {
 					t.Errorf("Expected radius to be '%s', got: %s", want, got)
 				}
 				// Parse the skip and take form values to integers
@@ -184,7 +186,7 @@ func TestSearchQuery(t *testing.T) {
 
 				var searchResponse GeocacheSearchResponse
 				searchResponse.Total = totalCaches
-				searchResponse.Results = fakeCaches[skip:take]
+				searchResponse.Results = fakeCaches[skip:int(math.Min(float64(skip+take), float64(totalCaches)))]
 
 				w.WriteHeader(http.StatusOK)
 
@@ -207,18 +209,28 @@ func TestSearchQuery(t *testing.T) {
 		GeocachingAPIURL: server.URL,
 	}
 	st := searchTerms{
-		Latitude:     searchLat,
-		Longitude:    searchLon,
-		RadiusMeters: 1234,
+		Latitude:      searchLat,
+		Longitude:     searchLon,
+		RadiusMeters:  1234,
+		IgnorePremium: false,
 	}
 	gc, err := NewGeocachingAPI(c)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(gc.baseURL)
-	caches, err := gc.Search(st)
-	if err != nil {
+	if caches, err := gc.Search(st); err != nil {
 		t.Fatal(err)
+	} else {
+		if want, got := totalCaches, len(caches); want != got {
+			t.Errorf("Expected %d caches, got: %d", want, got)
+		}
 	}
-	fmt.Println(caches)
+	st.IgnorePremium = true
+	if caches, err := gc.Search(st); err != nil {
+		t.Fatal(err)
+	} else {
+		if want, got := totalCaches, len(caches); want < got {
+			t.Errorf("Expected fewer than %d caches, got: %d", want, got)
+		}
+	}
 }

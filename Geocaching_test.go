@@ -27,20 +27,14 @@ func (m *mockGeocachingApi) populate() {
 			Difficulty:     3.5,
 			Terrain:        2.5,
 			CacheStatus:    1,
-			PostedCoordinates: struct {
-				Latitude  float64 `json:"latitude"`
-				Longitude float64 `json:"longitude"`
-			}{
+			PostedCoordinates: GocachePostedCoordinates{
 				Latitude:  37.7749,
 				Longitude: -122.4194,
 			},
 			DetailsURL: "/geocache/GC1234",
 			HasGeotour: false,
 			PlacedDate: "2020-01-01T00:00:00",
-			Owner: struct {
-				Code     string `json:"code"`
-				Username string `json:"username"`
-			}{
+			Owner: GeocacheOwner{
 				Code:     "ABC123",
 				Username: "JimblyBimbly",
 			},
@@ -48,11 +42,7 @@ func (m *mockGeocachingApi) populate() {
 			TrackableCount: 2,
 			Region:         "California",
 			Country:        "United States",
-			Attributes: []struct {
-				ID           int    `json:"id"`
-				Name         string `json:"name"`
-				IsApplicable bool   `json:"isApplicable"`
-			}{
+			Attributes: []GeocacheAttributes{
 				{ID: 24, Name: "Wheelchair accessible", IsApplicable: false},
 				{ID: 8, Name: "Scenic view", IsApplicable: true},
 			},
@@ -72,20 +62,14 @@ func (m *mockGeocachingApi) populate() {
 			Difficulty:     3.5,
 			Terrain:        2.5,
 			CacheStatus:    1,
-			PostedCoordinates: struct {
-				Latitude  float64 `json:"latitude"`
-				Longitude float64 `json:"longitude"`
-			}{
+			PostedCoordinates: GocachePostedCoordinates{
 				Latitude:  37.7749,
 				Longitude: -122.4194,
 			},
 			DetailsURL: "/geocache/GC456798",
 			HasGeotour: false,
 			PlacedDate: "2020-02-03T10:00:00",
-			Owner: struct {
-				Code     string `json:"code"`
-				Username string `json:"username"`
-			}{
+			Owner: GeocacheOwner{
 				Code:     "ABC123",
 				Username: "PrinceOfBingo",
 			},
@@ -93,11 +77,7 @@ func (m *mockGeocachingApi) populate() {
 			TrackableCount: 2,
 			Region:         "California",
 			Country:        "United States",
-			Attributes: []struct {
-				ID           int    `json:"id"`
-				Name         string `json:"name"`
-				IsApplicable bool   `json:"isApplicable"`
-			}{
+			Attributes: []GeocacheAttributes{
 				{ID: 24, Name: "Wheelchair accessible", IsApplicable: false},
 				{ID: 8, Name: "Scenic view", IsApplicable: true},
 			},
