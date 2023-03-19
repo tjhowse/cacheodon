@@ -30,7 +30,6 @@ func TestAuthSuccess(t *testing.T) {
 			if err := r.ParseForm(); err != nil {
 				t.Fatal(err)
 			}
-			// Sheesh this is a lot of boilerplate. Surely there's a shortcut I could use.
 			if want, got := "client_id", r.Form.Get("UsernameOrEmail"); want != got {
 				t.Errorf("Expected UsernameOrEmail to be '%s', got: %s", want, got)
 			}
@@ -161,7 +160,6 @@ func TestSearchQuery(t *testing.T) {
 		fakeCaches[i].PlacedDate = fakeCaches[i].PlacedDate[:len(fakeCaches[i].PlacedDate)-1]
 		fakeCaches[i].LastFoundDate = fakeCaches[i].LastFoundDate[:len(fakeCaches[i].LastFoundDate)-1]
 		fakeCaches[i].DetailsURL = "https://www.geocaching.com/geocache/" + fakeCaches[i].Code
-		// TODO generate fake logs too.
 		gofakeit.Struct(&fakeLogs[i])
 		fakeLogs[i].CacheID = fakeCaches[i].ID
 	}
