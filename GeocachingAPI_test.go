@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
@@ -49,8 +50,9 @@ func TestAuthSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := URLConfig{
+	c := APIConfig{
 		GeocachingAPIURL: server.URL,
+		UnThrottle:       true,
 	}
 
 	gc, err := NewGeocachingAPI(c)
@@ -85,8 +87,9 @@ func TestAuthFail1(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := URLConfig{
+	c := APIConfig{
 		GeocachingAPIURL: server.URL,
+		UnThrottle:       true,
 	}
 
 	gc, err := NewGeocachingAPI(c)
@@ -125,8 +128,9 @@ func TestAuthFail2(t *testing.T) {
 	}))
 	defer server.Close()
 
-	c := URLConfig{
+	c := APIConfig{
 		GeocachingAPIURL: server.URL,
+		UnThrottle:       true,
 	}
 
 	gc, err := NewGeocachingAPI(c)
@@ -150,11 +154,17 @@ func TestSearchQuery(t *testing.T) {
 	// At least 1001 caches to get the pagination working.
 	totalCaches := 1001
 	fakeCaches := make([]Geocache, totalCaches)
+	fakeLogs := make([]GeocacheLog, totalCaches)
 	for i := 0; i < totalCaches; i++ {
 		gofakeit.Struct(&fakeCaches[i])
 		fakeCaches[i].PlacedDate = fakeCaches[i].PlacedDate[:len(fakeCaches[i].PlacedDate)-1]
 		fakeCaches[i].LastFoundDate = fakeCaches[i].LastFoundDate[:len(fakeCaches[i].LastFoundDate)-1]
+		fakeCaches[i].DetailsURL = "https://www.geocaching.com/geocache/" + fakeCaches[i].Code
+		// TODO generate fake logs too.
+		gofakeit.Struct(&fakeLogs[i])
+		fakeLogs[i].CacheID = fakeCaches[i].ID
 	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			if r.URL.Path == "/account/signin" {
@@ -195,6 +205,8 @@ func TestSearchQuery(t *testing.T) {
 				if err := enc.Encode(searchResponse); err != nil {
 					t.Fatal(err)
 				}
+			} else if strings.Split(r.URL.Path, "/")[0] == "geocache" {
+				fmt.Println("Got a lookup on a geocache's page.")
 			}
 		} else if r.Method == http.MethodPost {
 			if r.URL.Path == "/account/signin" {
@@ -205,8 +217,9 @@ func TestSearchQuery(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	c := URLConfig{
+	c := APIConfig{
 		GeocachingAPIURL: server.URL,
+		UnThrottle:       true,
 	}
 	st := searchTerms{
 		Latitude:      searchLat,

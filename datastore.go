@@ -14,14 +14,15 @@ type searchTerms struct {
 	IgnorePremium bool
 }
 
-type URLConfig struct {
+type APIConfig struct {
 	// The URL of the Geocaching API.
 	GeocachingAPIURL string
 	HTTPProxyURL     string
+	UnThrottle       bool // Should we disable rate-limiting for this API?
 }
 
 type configStore struct {
-	Configuration URLConfig
+	Configuration APIConfig
 	SearchTerms   searchTerms
 	DBFilename    string
 }

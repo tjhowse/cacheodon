@@ -22,15 +22,15 @@ import (
 )
 
 type GeocachingAPI struct {
-	baseURL          string
+	config           APIConfig
 	client           *RLHTTPClient
 	cookieJar        *cookiejar.Jar
 	blueMondayPolicy *bluemonday.Policy
 }
 
-func NewGeocachingAPI(c URLConfig) (*GeocachingAPI, error) {
+func NewGeocachingAPI(c APIConfig) (*GeocachingAPI, error) {
 	var err error
-	g := &GeocachingAPI{baseURL: c.GeocachingAPIURL}
+	g := &GeocachingAPI{config: c}
 	g.cookieJar, err = cookiejar.New(nil)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 
 	// First we have to initiate a request to https://www.geocaching.com/account/signin
 	// to obtain a "__RequestVerificationToken" value.
-	RVTReq, err := http.NewRequest("GET", g.baseURL+"/account/signin", nil)
+	RVTReq, err := http.NewRequest("GET", g.config.GeocachingAPIURL+"/account/signin", nil)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 	params.Add("Password", clientSecret)
 	body := strings.NewReader(params.Encode())
 
-	POSTReq, err := http.NewRequest("POST", g.baseURL+"/account/signin", body)
+	POSTReq, err := http.NewRequest("POST", g.config.GeocachingAPIURL+"/account/signin", body)
 	if err != nil {
 		return err
 	}
@@ -105,10 +105,10 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 	POSTReq.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	POSTReq.Header.Set("Accept-Encoding", "gzip, deflate, br")
 	POSTReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	POSTReq.Header.Set("Origin", g.baseURL+"")
+	POSTReq.Header.Set("Origin", g.config.GeocachingAPIURL+"")
 	POSTReq.Header.Set("Dnt", "1")
 	POSTReq.Header.Set("Connection", "keep-alive")
-	POSTReq.Header.Set("Referer", g.baseURL+"/account/signin?returnUrl=%2fplay")
+	POSTReq.Header.Set("Referer", g.config.GeocachingAPIURL+"/account/signin?returnUrl=%2fplay")
 	POSTReq.Header.Set("Upgrade-Insecure-Requests", "1")
 	POSTReq.Header.Set("Sec-Fetch-Dest", "document")
 	POSTReq.Header.Set("Sec-Fetch-Mode", "navigate")
@@ -135,7 +135,7 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 		return fmt.Errorf("couldn't read body")
 	}
 
-	log.Println("Authenticated to", g.baseURL)
+	log.Println("Authenticated to", g.config.GeocachingAPIURL)
 	return nil
 }
 
@@ -180,7 +180,7 @@ type Geocache struct {
 	Bearing           string                   `json:"bearing" fake:"{number:1,100}"`
 
 	LastFoundTime time.Time // This is a parsed version of LastFoundDate
-	GUID          string    // We read this ourselves from the geocache's page
+	GUID          string    `fake:"{UUID}"` // We read this ourselves from the geocache's page
 }
 
 type GeocacheSearchResponse struct {
@@ -234,7 +234,7 @@ type GeocacheLogSearchResponse struct {
 // and the total number of geocaches matching that query
 func (g *GeocachingAPI) searchQuery(st searchTerms, skip, take int) ([]Geocache, int, error) {
 	var err error
-	req, err := http.NewRequest("GET", g.baseURL+"/api/proxy/web/search/v2", nil)
+	req, err := http.NewRequest("GET", g.config.GeocachingAPIURL+"/api/proxy/web/search/v2", nil)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -256,7 +256,7 @@ func (g *GeocachingAPI) searchQuery(st searchTerms, skip, take int) ([]Geocache,
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Accept-Language", "en-GB,en;q=0.5")
 	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Set("Referer", g.baseURL+"/play")
+	req.Header.Set("Referer", g.config.GeocachingAPIURL+"/play")
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Cookie", "BMItemsPerPage=1000;-H Sec-Fetch-Dest:")
@@ -310,7 +310,7 @@ func parseTime(date string) (time.Time, error) {
 
 // This sets the GUID field on the geocache.
 func (g *GeocachingAPI) GetGUIDForGeocache(geocache *Geocache) error {
-	url := fmt.Sprintf(g.baseURL+"/geocache/%s", geocache.Code)
+	url := fmt.Sprintf(g.config.GeocachingAPIURL+"/geocache/%s", geocache.Code)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -320,7 +320,7 @@ func (g *GeocachingAPI) GetGUIDForGeocache(geocache *Geocache) error {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Accept-Language", "en-GB,en;q=0.5")
 	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Set("Referer", g.baseURL+"/play")
+	req.Header.Set("Referer", g.config.GeocachingAPIURL+"/play")
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Cookie", "BMItemsPerPage=1000;-H Sec-Fetch-Dest:")
@@ -367,8 +367,10 @@ func (g *GeocachingAPI) SanitiseLogText(text string) (result string) {
 func (g *GeocachingAPI) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 	var err error
 
-	// Wait a random number of seconds between 3 and 8
-	time.Sleep(time.Duration(rand.Intn(5)+3) * time.Second)
+	if !g.config.UnThrottle {
+		// Wait a random number of seconds between 3 and 8
+		time.Sleep(time.Duration(rand.Intn(5)+3) * time.Second)
+	}
 
 	// Get the GUID for the geocache, if required
 	if geocache.GUID == "" {
@@ -377,7 +379,7 @@ func (g *GeocachingAPI) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 			return nil, err
 		}
 	}
-	url := fmt.Sprintf(g.baseURL+"/seek/geocache_logs.aspx?guid=%s", geocache.GUID)
+	url := fmt.Sprintf(g.config.GeocachingAPIURL+"/seek/geocache_logs.aspx?guid=%s", geocache.GUID)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -388,7 +390,7 @@ func (g *GeocachingAPI) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Accept-Language", "en-GB,en;q=0.5")
 	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Set("Referer", g.baseURL+"/play")
+	req.Header.Set("Referer", g.config.GeocachingAPIURL+"/play")
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Cookie", "BMItemsPerPage=1000;-H Sec-Fetch-Dest:")
@@ -412,7 +414,7 @@ func (g *GeocachingAPI) GetLogs(geocache *Geocache) ([]GeocacheLog, error) {
 	userToken := matches[1]
 
 	// Now we have the userToken, we can request the logs
-	req, err = http.NewRequest("GET", g.baseURL+"/seek/geocache.logbook", nil)
+	req, err = http.NewRequest("GET", g.config.GeocachingAPIURL+"/seek/geocache.logbook", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -474,8 +476,10 @@ func (g *GeocachingAPI) Search(st searchTerms) ([]Geocache, error) {
 		if sanityCheck > 10 {
 			return nil, fmt.Errorf("sanity check failed")
 		}
-		// Wait a random number of seconds between 2 and 5
-		time.Sleep(time.Duration(rand.Intn(3)+2) * time.Second)
+		if !g.config.UnThrottle {
+			// Wait a random number of seconds between 2 and 5
+			time.Sleep(time.Duration(rand.Intn(3)+2) * time.Second)
+		}
 		var nextResults []Geocache
 		if nextResults, _, err = g.searchQuery(st, i, 500); err != nil {
 			return nil, err
