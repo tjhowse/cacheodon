@@ -44,12 +44,20 @@ func NewGeocachingAPI(c APIConfig) (*GeocachingAPI, error) {
 		}
 	}
 
+	var limiter *rate.Limiter
+
+	if !c.UnThrottle {
+		limiter = rate.NewLimiter(rate.Every(1*time.Second), 1)
+	} else {
+		limiter = rate.NewLimiter(rate.Inf, 1)
+	}
+
 	g.client = &RLHTTPClient{
 		client: &http.Client{
 			Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)},
 			Jar:       g.cookieJar,
 		},
-		Ratelimiter: rate.NewLimiter(rate.Every(1*time.Second), 1),
+		Ratelimiter: limiter,
 	}
 	g.blueMondayPolicy = bluemonday.StrictPolicy()
 	return g, nil
