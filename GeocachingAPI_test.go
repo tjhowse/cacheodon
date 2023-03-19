@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/google/uuid"
 )
 
 func TestAuthSuccess(t *testing.T) {
@@ -205,8 +206,40 @@ func TestSearchQuery(t *testing.T) {
 				if err := enc.Encode(searchResponse); err != nil {
 					t.Fatal(err)
 				}
-			} else if strings.Split(r.URL.Path, "/")[0] == "geocache" {
-				fmt.Println("Got a lookup on a geocache's page.")
+			} else if strings.Split(r.URL.Path, "/")[1] == "geocache" {
+				w.Write([]byte(`Bloopa doopa this is the body
+				of the message
+				guid='` + uuid.NewString() + `'; />
+				that was the token you're after.`))
+			} else if r.URL.Path == "/seek/geocache_logs.aspx" {
+				if err := r.ParseForm(); err != nil {
+					t.Fatal(err)
+				}
+				if r.Form.Get("guid") == "" {
+					t.Fatal("Expected guid to be set")
+				}
+				w.Write([]byte(`Bloopa doopa this is the body
+				of the message
+				userToken = 'ABC123CBA321'; />
+				that was the token you're after.`))
+			} else if r.URL.Path == "/seek/geocache.logbook" {
+				if err := r.ParseForm(); err != nil {
+					t.Fatal(err)
+				}
+				if r.Form.Get("tkn") == "" {
+					t.Fatal("Expected tkn to be set")
+				}
+				var logSearchResponse GeocacheLogSearchResponse
+				var logSubset []GeocacheLog
+				logSubset = append(logSubset, fakeLogs[0])
+				logSearchResponse.Data = logSubset
+
+				enc := json.NewEncoder(w)
+				if err := enc.Encode(logSearchResponse); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				t.Errorf("Unexpected request to: %s\n", r.URL.Path)
 			}
 		} else if r.Method == http.MethodPost {
 			if r.URL.Path == "/account/signin" {
@@ -231,6 +264,7 @@ func TestSearchQuery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Test doing a search for all caches.
 	if caches, err := gc.Search(st); err != nil {
 		t.Fatal(err)
 	} else {
@@ -238,12 +272,31 @@ func TestSearchQuery(t *testing.T) {
 			t.Errorf("Expected %d caches, got: %d", want, got)
 		}
 	}
+	// Test ignoring premium caches.
 	st.IgnorePremium = true
-	if caches, err := gc.Search(st); err != nil {
+	var caches []Geocache
+	if caches, err = gc.Search(st); err != nil {
 		t.Fatal(err)
-	} else {
-		if want, got := totalCaches, len(caches); want < got {
-			t.Errorf("Expected fewer than %d caches, got: %d", want, got)
-		}
+	}
+	// Check we got fewer than all caches.
+	if want, got := totalCaches, len(caches); want < got {
+		t.Errorf("Expected fewer than %d caches, got: %d", want, got)
+	}
+	// Check the GUID gets updated when we call GetGUIDForGeocache.
+	oldGUID := caches[0].GUID
+	if err = gc.GetGUIDForGeocache(&caches[0]); err != nil {
+		t.Fatal(err)
+	}
+	if want, got := oldGUID, caches[0].GUID; want == got {
+		t.Errorf("Expected GUID to be different, got: %s", got)
+	}
+	fakeLogs[0].CacheID = caches[0].ID
+	var logs []GeocacheLog
+	// Test getting the log for this geocache.
+	if logs, err = gc.GetLogs(&caches[0]); err != nil {
+		t.Fatal(err)
+	}
+	if want, got := 1, len(logs); want != got {
+		t.Errorf("Expected %d logs, got: %d", want, got)
 	}
 }
