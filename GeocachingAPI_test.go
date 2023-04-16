@@ -297,4 +297,7 @@ func TestSearchQuery(t *testing.T) {
 	if want, got := 1, len(logs); want != got {
 		t.Errorf("Expected %d logs, got: %d", want, got)
 	}
+	if want, got := fakeLogs[0].UserName, logs[0].UserName; want != got {
+		t.Errorf("Expected username to be '%s', got: %s", want, got)
+	}
 }

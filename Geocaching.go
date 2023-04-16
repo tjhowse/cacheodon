@@ -84,13 +84,18 @@ type postDetails struct {
 	UsersFindsToday int
 	LogText         string
 	NewCache        bool
+	PremiumOnly     bool
 }
 
 func (p *postDetails) toString() string {
 	message := ""
 	if !p.NewCache {
 		message += "In " + p.AreaName + ", \"" + p.UserName + "\""
-		message += " just found the \"" + p.CacheName + "\" geocache! " + p.DetailsURL
+		message += " just found the \"" + p.CacheName + "\""
+		if p.PremiumOnly {
+			message += " premium"
+		}
+		message += " geocache! " + p.DetailsURL
 		if p.UsersFindsToday > 1 {
 			message += " That's their " + humanize.Ordinal(p.UsersFindsToday) + " find today!"
 		}
@@ -108,6 +113,7 @@ func (g *Geocaching) buildPostDetails(gc *Geocache, new, updated bool) (postDeta
 	result.AreaName = g.conf.SearchTerms.AreaName
 	result.CacheName = gc.Name
 	result.DetailsURL = "https://www.geocaching.com" + gc.DetailsURL
+	result.PremiumOnly = gc.PremiumOnly
 	if new {
 		// If the cache is new, don't bother trying to get the find logs for it.
 		result.UserName = gc.Owner.Username
