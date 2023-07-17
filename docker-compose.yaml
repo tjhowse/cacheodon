@@ -1,0 +1,17 @@
+version: '3.7'
+services:
+  cacheodon:
+    container_name: cacheodon
+    restart: unless-stopped
+    image: tjhowse/cacheodon:latest
+    volumes:
+      - ./cacheodon/cacheodon.sqlite3:/cacheodon/cacheodon.sqlite3:rw
+      - ./cacheodon/config.toml:/cacheodon/config.toml:ro
+    environment:
+      - "GEOCACHING_CLIENT_ID=<snip>"
+      - "GEOCACHING_CLIENT_SECRET=<snip>"
+      - "MASTODON_SERVER=https://<snip>"
+      - "MASTODON_CLIENT_ID=<snip>"
+      - "MASTODON_CLIENT_SECRET=<snip>"
+      - "MASTODON_USER_EMAIL=<snip>"
+      - "MASTODON_USER_PASSWORD=<snip>"
