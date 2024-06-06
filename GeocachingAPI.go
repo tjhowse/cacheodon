@@ -133,11 +133,11 @@ func (g *GeocachingAPI) Auth(clientID, clientSecret string) error {
 		if match, err := regexp.Match("It seems your Anti-Forgery Token is invalid", body); err == nil && match {
 			return fmt.Errorf("Anti-Forgery Token is invalid")
 		}
-		if match, err := regexp.Match(`"isLoggedIn": true,`, body); err != nil || !match {
-			// Print the body
-			// log.Println(string(body))
-			return fmt.Errorf("login failed")
-		}
+		// if match, err := regexp.Match(`"isLoggedIn": true,`, body); err != nil || !match {
+		// 	// Print the body
+		// 	log.Println(string(body))
+		// 	return fmt.Errorf("login failed")
+		// }
 
 	} else {
 		return fmt.Errorf("couldn't read body")
