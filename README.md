@@ -14,8 +14,7 @@ Install the Go compiler and tools from [here](https://golang.org/doc/install).
     export MASTODON_SERVER=https://<server>
     export MASTODON_CLIENT_ID=<mastodon client id>
     export MASTODON_CLIENT_SECRET=<mastodon client secret>
-    export MASTODON_USER_EMAIL=<mastodon user email address>
-    export MASTODON_USER_PASSWORD=<mastodon user password>
+    export MASTODON_ACCESS_TOKEN=<mastodon user access token>
     ./cacheodon
     <ctrl-c>
 
@@ -29,7 +28,7 @@ Due to the incredible bastards who designed the API at geocaching.com, I had to 
 
 ### Background
 
-Long ago I hid a few geocaches around Brisbane. I, and some other volunteers from the geocaching community, have maintained them for the last 15 years or so. At some point the arseholes at Groundspeak (the company that owns geocaching.com) started restricting the visibility of some geocaches, and other features, to "Premium Members". This wasn't the case when I hid my geocaches, so I developed a grudge.
+Long ago I hid a few geocaches around Brisbane. I, and some other volunteers from the geocaching community, have maintained them for the last 15 years or so. At some point Groundspeak (the company that owns geocaching.com) started restricting the visibility of some geocaches, and other features, to "Premium Members". This wasn't the case when I hid my geocaches, so I developed a grudge.
 
 ### Login
 
