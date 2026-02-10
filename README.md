@@ -24,7 +24,7 @@ Edit config.toml to insert the coordinates and search radius you wish to monitor
 
 ## Further reading
 
-Due to the incredible bastards who designed the API at geocaching.com, I had to jump through a lot of hoops to get this working. Here's a brief overview of what I had to do.
+Due to the... sedimentary API of geocaching.com I had to jump through a lot of hoops to get this working. Here's a brief overview of what I had to do.
 
 ### Background
 
