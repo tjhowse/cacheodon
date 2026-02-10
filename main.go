@@ -9,10 +9,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const VERSION = "0.1.0"
+
 func main() {
+
 	var err error
 
 	verbose := flag.Bool("v", false, "Verbose logging")
+
+	log.Println("Starting Cacheodon version " + VERSION)
 
 	flag.Parse()
 	if *verbose {

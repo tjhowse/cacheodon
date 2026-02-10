@@ -17,11 +17,8 @@ func NewMastodon() (*Mastodon, error) {
 		Server:       os.Getenv("MASTODON_SERVER"),
 		ClientID:     os.Getenv("MASTODON_CLIENT_ID"),
 		ClientSecret: os.Getenv("MASTODON_CLIENT_SECRET"),
+		AccessToken:  os.Getenv("MASTODON_ACCESS_TOKEN"),
 	})
-	err := m.c.Authenticate(context.Background(), os.Getenv("MASTODON_USER_EMAIL"), os.Getenv("MASTODON_USER_PASSWORD"))
-	if err != nil {
-		return nil, err
-	}
 	return m, nil
 }
 

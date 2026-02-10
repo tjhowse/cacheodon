@@ -13,5 +13,4 @@ services:
       - "MASTODON_SERVER=https://<snip>"
       - "MASTODON_CLIENT_ID=<snip>"
       - "MASTODON_CLIENT_SECRET=<snip>"
-      - "MASTODON_USER_EMAIL=<snip>"
-      - "MASTODON_USER_PASSWORD=<snip>"
+      - "MASTODON_ACCESS_TOKEN=<snip>"
