@@ -1,6 +1,6 @@
 # Cacheodon
 
-This is an agent that relays geocaching-related events from the web to a mastodon server.
+This is a service that relays geocaching-related events from the web to a mastodon server.
 
 ## Deployment
 
